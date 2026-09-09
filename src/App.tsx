@@ -1,7 +1,5 @@
+import { HomePage } from './pages/HomePage'
+
 export default function App() {
-  return (
-    <main>
-      <h1>Ana Julia</h1>
-    </main>
-  )
+  return <HomePage />
 }

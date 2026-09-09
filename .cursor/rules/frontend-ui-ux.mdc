@@ -1,0 +1,19 @@
+---
+description: Toda tela/componente deve usar ui-ux-pro-max e o MASTER da Ana Julia
+globs: src/pages/**/*,src/**/*.css
+alwaysApply: false
+---
+
+# UI/UX — telas e componentes
+
+Antes de criar ou alterar UI, leia `.cursor/skills/ui-ux-pro-max/SKILL.md`.
+
+1. Leia `design-system/ana-julia/MASTER.md` e `design-system/ana-julia/pages/<pagina>.md` se existir.
+2. **Nova tela / redesign:**  
+   `python .cursor/skills/ui-ux-pro-max/scripts/search.py "videomaker portfolio catalog elegant minimal monochrome" --design-system -p "Ana Julia"`
+3. **Ajuste pontual:** busca `--domain` (ux, typography, landing) ou `--stack react`.
+4. Aplique só tokens de `src/styles/tokens.css`. A logo manda: **sem acento cromático**.
+
+No Windows use `python`. Se Python não existir, siga a SKILL.md sem instalar nada.
+
+Mobile-first. Validar **375 / 768 / 1024**. `cursor: pointer` em clicáveis; `:focus-visible`; `prefers-reduced-motion`.

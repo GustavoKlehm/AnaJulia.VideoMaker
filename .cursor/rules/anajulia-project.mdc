@@ -1,0 +1,29 @@
+---
+description: Contexto do catálogo Ana Julia — stack, marca e onde vivem as decisões
+alwaysApply: true
+---
+
+# Ana Julia — Catálogo Videomaker
+
+Vite + React + TypeScript, API Express, Postgres no Supabase, deploy na Vercel.
+
+**Supabase:** projeto `bkknluhlyqmfhiazwslg` · API `https://bkknluhlyqmfhiazwslg.supabase.co`  
+Skills: `.cursor/skills/supabase` e `.cursor/skills/supabase-postgres-best-practices`.  
+Senha e keys só em `.env` (nunca no Git). Na Vercel, use o connection pooler (porta 6543).
+
+## Decisões
+
+- Design system: `design-system/ana-julia/MASTER.md` (fonte da verdade visual)
+- Override de página: `design-system/ana-julia/pages/<pagina>.md`
+- Tokens CSS: `src/styles/tokens.css` — sem hex solto nas telas
+- Logo horizontal: `public/brand/logo-anajulia.png` — seções amplas
+- Ícone AJ: `logo-anajulia-icon.png` (papel / tema claro) e `logo-anajulia-icon-negativo.png` (cinema / tema escuro)
+- Favicon: `prefers-color-scheme` em `index.html` — não usar filter invert
+- Slogan: “Transformando momentos em histórias”
+- Conceito: editorial cinematográfico — cinema no hero/capítulos, papel na marca
+- Hero: Storage `media/hero_cinematographic.MOV` via `VITE_HERO_VIDEO_URL`
+- UI nova: skill `.cursor/skills/ui-ux-pro-max` + rule `frontend-ui-ux.mdc`
+
+## Idioma
+
+Interface e copy em **português**. Código e tokens em inglês.

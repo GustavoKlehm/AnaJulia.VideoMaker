@@ -1,0 +1,48 @@
+:root {
+  --color-primary: #000000;
+  --color-on-primary: #ffffff;
+  --color-secondary: #3f3f46;
+  --color-on-secondary: #ffffff;
+  --color-accent: #000000;
+  --color-on-accent: #ffffff;
+  --color-background: #f8f8f8;
+  --color-foreground: #000000;
+  --color-card: #ffffff;
+  --color-card-foreground: #000000;
+  --color-muted: #e8e8e8;
+  --color-muted-foreground: #525252;
+  --color-border: #e8e8e8;
+  --color-destructive: #dc2626;
+  --color-on-destructive: #ffffff;
+  --color-ring: #000000;
+  --color-cinema: #0a0a0a;
+  --color-on-cinema: #f8f8f8;
+  --color-cinema-muted: #a3a3a3;
+
+  --font-serif: 'Playfair Display', 'Times New Roman', serif;
+  --font-sans: Inter, system-ui, sans-serif;
+  --tracking-label: 0.28em;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 24px;
+  --space-lg: 32px;
+  --space-xl: 48px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+
+  --shadow-sm: none;
+  --shadow-md: 0 1px 0 var(--color-border);
+  --shadow-lg: 0 1px 0 var(--color-border);
+  --shadow-xl: 0 1px 0 var(--color-border);
+
+  --duration-hover: 200ms;
+  --duration-reveal: 380ms;
+  --reveal-distance: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-hover: 0ms;
+  }
+}
