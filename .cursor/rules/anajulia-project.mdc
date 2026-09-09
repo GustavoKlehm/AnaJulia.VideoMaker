@@ -22,6 +22,7 @@ Senha e keys só em `.env` (nunca no Git). Na Vercel, use o connection pooler (p
 - Slogan: “Transformando momentos em histórias”
 - Conceito: editorial cinematográfico — cinema no hero/capítulos, papel na marca
 - Hero: Storage `media/hero_cinematographic.MOV` via `VITE_HERO_VIDEO_URL`
+- Marca: wordmark estática `public/brand/logo-anajulia.png`
 - UI nova: skill `.cursor/skills/ui-ux-pro-max` + rule `frontend-ui-ux.mdc`
 
 ## Idioma

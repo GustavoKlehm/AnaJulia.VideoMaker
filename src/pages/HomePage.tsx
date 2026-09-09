@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { InstagramLogo, WhatsappLogo } from '@phosphor-icons/react'
 import { SiteHeader } from '../components/SiteHeader'
 import { Reveal } from '../components/Reveal'
-import { hero, slogan, sloganLines, stories } from '../content/site'
+import { brand, contact, hero, showStories, slogan, sloganLines, stories } from '../content/site'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import './HomePage.css'
 
@@ -123,65 +124,116 @@ export function HomePage() {
             </button>
           ) : null}
 
-          <a className="hero__scroll" href="#historias">
-            Histórias
+          <a className="hero__scroll" href={showStories ? '#historias' : '#sobre'}>
+            {showStories ? 'Histórias' : 'Sobre'}
           </a>
         </section>
 
         <section id="marca" className="brand" aria-label="Marca">
-          <Reveal>
-            <img
-              className="brand__logo"
-              src="/brand/logo-anajulia.png"
-              width={1024}
-              height={1024}
-              alt="Ana Julia — Storymaker e Videomaker"
-            />
-          </Reveal>
+          <img
+            className="brand__logo"
+            src={brand.wordmark}
+            width={1024}
+            height={1024}
+            alt="Ana Julia — Storymaker e Videomaker"
+          />
         </section>
 
-        <section id="historias" className="stories" aria-label="Histórias">
-          {stories.map((story) => (
-            <article
-              key={story.id}
-              id={story.id}
-              className="chapter"
-              data-theme="cinema"
-            >
-              {story.media ? (
-                <img className="chapter__media" src={story.media} alt="" />
-              ) : null}
-              <Reveal className="chapter__copy">
-                <h2>{story.title}</h2>
-                <p>{story.lead}</p>
-              </Reveal>
-            </article>
-          ))}
-        </section>
+        {showStories ? (
+          <section id="historias" className="stories" aria-label="Histórias">
+            {stories.map((story) => (
+              <article
+                key={story.id}
+                id={story.id}
+                className="chapter"
+                data-theme="cinema"
+              >
+                {story.media ? (
+                  <img className="chapter__media" src={story.media} alt="" />
+                ) : null}
+                <Reveal className="chapter__copy">
+                  <h2>{story.title}</h2>
+                  <p>{story.lead}</p>
+                </Reveal>
+              </article>
+            ))}
+          </section>
+        ) : null}
 
         <section id="sobre" className="about">
-          <Reveal>
-            <h2>Sobre</h2>
-          </Reveal>
-          <Reveal>
-            <p>
-              Ana Júlia filma o que o tempo costuma levar: gestos mínimos,
-              silêncios, a forma como duas pessoas se reconhecem. Storymaker e
-              videomaker — um olhar cinematográfico, próximo e sem pressa.
-            </p>
-          </Reveal>
-          <Reveal className="about__echo">
-            <p>{slogan}.</p>
-          </Reveal>
+          <div className="about__inner">
+            <Reveal>
+              <h2>Sobre</h2>
+            </Reveal>
+            <Reveal>
+              <p>
+                Acreditamos que cada história começa nas experiências, nos
+                detalhes e nos momentos que merecem ser contados.
+              </p>
+              <p>Registramos marcas, eventos e momentos especiais.</p>
+            </Reveal>
+            <Reveal className="about__echo">
+              <p>{slogan}.</p>
+            </Reveal>
+          </div>
         </section>
 
         <section id="contato" className="contact">
-          <Reveal>
-            <h2>Contato</h2>
-          </Reveal>
-          <Reveal>
-            <p>Conte o momento que você quer guardar.</p>
-          </Reveal>
+          <div className="contact__inner">
+            <Reveal>
+              <h2>Contato</h2>
+            </Reveal>
+            <Reveal className="contact__grid">
+              <div className="contact__col">
+                <p>
+                  Conte o momento
+                  <br />
+                  que você quer guardar
+                </p>
+                <div className="contact__links">
+                  <a
+                    className="contact__button"
+                    href={contact.whatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Conversar no WhatsApp"
+                  >
+                    <WhatsappLogo size={22} weight="regular" aria-hidden="true" />
+                    WhatsApp
+                  </a>
+                  <a
+                    className="contact__button"
+                    href={contact.instagramDm}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Enviar Direct no Instagram"
+                  >
+                    <InstagramLogo size={22} weight="regular" aria-hidden="true" />
+                    Direct
+                  </a>
+                </div>
+              </div>
+              <div className="contact__col">
+                <p>
+                  Conheça meu trabalho
+                  <br />
+                  no Instagram
+                </p>
+                <div className="contact__links">
+                  <a
+                    className="contact__button"
+                    href={contact.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Abrir Instagram de Ana Julia"
+                  >
+                    <InstagramLogo size={22} weight="regular" aria-hidden="true" />
+                    Instagram
+                  </a>
+                </div>
+              </div>
+            </Reveal>
+          </div>
         </section>
       </main>
     </>

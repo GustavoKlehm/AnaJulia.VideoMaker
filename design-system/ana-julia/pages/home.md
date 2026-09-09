@@ -13,12 +13,12 @@ Editorial cinematográfico: papel e cinema, sem cards. O audiovisual (ou o quadr
 ## Layout
 
 1. **Hero cinema** (`#inicio`) — viewport inteiro, `--color-cinema`. Slogan em Playfair itálico. Sem logo preta sobre o escuro.
-2. **Marca** (`#marca`) — papel `#F8F8F8`, logo oficial PNG, respiro amplo.
-3. **Histórias** (`#historias`) — cada trabalho é um capítulo full-bleed, não uma galeria.
-4. **Sobre** (`#sobre`) — pouco texto, no papel.
-5. **Contato** (`#contato`) — um convite, sem formulário-card.
+2. **Marca** (`#marca`) — wordmark estática `logo-anajulia.png` centrada no papel.
+3. **Histórias** (`#historias`) — capítulos full-bleed (amor, família, presença). Ocultos até haver mídia (`showStories` em `src/content/site.ts`).
+4. **Sobre** (`#sobre`) — bloco central na viewport; título com linha horizontal; texto centralizado.
+5. **Contato** (`#contato`) — duas colunas com divisor: falar (WhatsApp + Direct) | ver trabalho (Instagram). No mobile, colunas empilhadas.
 
-Nav fixa, discreta: Histórias · Sobre · Contato. No hero, tipo `--color-on-cinema`; no papel, `--color-foreground`. Sem logo no header (a marca preta some no cinema).
+Nav fixa, discreta: Sobre · Contato (Histórias quando `showStories`). No hero, tipo `--color-on-cinema`; no papel, `--color-foreground`. Sem logo no header (a marca preta some no cinema).
 
 ## Motion
 
@@ -29,6 +29,7 @@ Scroll reveal sutil (opacity + 12px, ~380ms). Sem parallax, pin ou stagger elás
 - Wordmark: `public/brand/logo-anajulia.png` (seção marca)
 - Ícone: `logo-anajulia-icon.png` no papel; `logo-anajulia-icon-negativo.png` no cinema e no favicon escuro
 - Hero: bucket público `media` → `hero_cinematographic.MOV` (`VITE_HERO_VIDEO_URL`)
+- Marca: `public/brand/logo-anajulia.png`
 - Capítulos aceitam `poster` / `src` em `src/content/site.ts` quando houver filmes reais
 
 ## Anti-patterns on this page
