@@ -18,8 +18,8 @@ export const hero = {
 export const contact = {
   whatsapp:
     'https://api.whatsapp.com/send/?phone=5546999343683&text=Ol%C3%A1%21+Vim+pelo+site+e+gostaria+de+conhecer+melhor+o+seu+trabalho.+%F0%9F%98%8A',
-  instagram: 'https://www.instagram.com/anajulia.storymaker_/',
-  instagramDm: 'https://ig.me/m/anajulia.storymaker_/',
+  instagram: 'https://www.instagram.com/anajulia.videomaker_/',
+  instagramDm: 'https://ig.me/m/anajulia.videomaker_/',
 } as const
 
 export const showStories = false
