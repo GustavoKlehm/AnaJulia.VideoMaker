@@ -985,7 +985,7 @@ export function PlanTier({ tier, unit }: PlanTierProps) {
 
   return (
     <article className={classes}>
-      <p className="tier__flag">{tier.featured ? 'Mais escolhido' : '\u00a0'}</p>
+      <p className="tier__flag">{tier.featured ? 'Mais escolhido' : ''}</p>
       <h3 className="tier__name">{tier.name}</h3>
       <p className="tier__price">
         {formatBRL(tier.price)}
@@ -1140,6 +1140,8 @@ Adicione ao final de `src/pages/PlanosPage.css`:
 }
 
 .tier__flag {
+  /* min-height reserva o espaço do rótulo nos planos não destacados,
+     mantendo os títulos alinhados entre os cards da mesma linha */
   margin: 0 0 var(--space-md);
   min-height: 1rem;
   font-size: 0.62rem;
