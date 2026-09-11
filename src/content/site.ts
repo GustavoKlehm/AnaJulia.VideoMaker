@@ -31,11 +31,18 @@ export const contact = {
 
 export const showStories = false
 
-export const nav = [
+export type NavItem = {
+  href: string
+  label: string
+  route?: boolean
+}
+
+export const nav: readonly NavItem[] = [
   ...(showStories ? [{ href: '#historias', label: 'Histórias' }] : []),
+  { href: '/planos', label: 'Planos', route: true },
   { href: '#sobre', label: 'Sobre' },
   { href: '#contato', label: 'Contato' },
-] as const
+]
 
 export const stories: {
   id: string
