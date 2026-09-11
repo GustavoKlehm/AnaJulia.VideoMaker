@@ -2,7 +2,8 @@ import { SiteHeader } from '../components/SiteHeader'
 import { PlanTier } from '../components/PlanTier'
 import { Reveal } from '../components/Reveal'
 import type { PricingLine } from '../content/pricing'
-import { formatBRL, lines } from '../content/pricing'
+import { addOns, custom, formatBRL, lines } from '../content/pricing'
+import { whatsappLink } from '../content/site'
 import './PlanosPage.css'
 
 function startingAt(line: PricingLine): string {
@@ -52,6 +53,52 @@ export function PlanosPage() {
             </div>
           </section>
         ))}
+
+        <section className="line" aria-labelledby="linha-personalizado">
+          <div className="line__inner line__inner--narrow">
+            <Reveal>
+              <h2 className="line__title" id="linha-personalizado">
+                {custom.title}
+              </h2>
+              <p className="line__lead">{custom.lead}</p>
+              <p className="custom__floor">
+                Orçamento mínimo de {formatBRL(custom.floor)}.
+              </p>
+              <a
+                className="tier__cta custom__cta"
+                href={whatsappLink(
+                  'Olá! Vim pelo site e queria um orçamento personalizado.',
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Pedir orçamento
+              </a>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="line" aria-labelledby="linha-adicionais">
+          <div className="line__inner line__inner--narrow">
+            <Reveal>
+              <h2 className="line__title" id="linha-adicionais">
+                Adicionais
+              </h2>
+              <p className="line__lead">
+                Valem para qualquer plano e sempre aparecem discriminados no
+                orçamento, nunca embutidos no total.
+              </p>
+            </Reveal>
+            <dl className="addons">
+              {addOns.map((addOn) => (
+                <div className="addons__row" key={addOn.id}>
+                  <dt>{addOn.label}</dt>
+                  <dd>{addOn.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
       </main>
     </>
   )
