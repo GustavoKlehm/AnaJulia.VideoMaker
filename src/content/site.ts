@@ -15,9 +15,16 @@ export const hero = {
     `${supabaseUrl}/storage/v1/object/public/media/hero_cinematographic.MOV`,
 } as const
 
+export const whatsappPhone = '5546999343683'
+
+export function whatsappLink(message: string): string {
+  return `https://api.whatsapp.com/send/?phone=${whatsappPhone}&text=${encodeURIComponent(message)}`
+}
+
 export const contact = {
-  whatsapp:
-    'https://api.whatsapp.com/send/?phone=5546999343683&text=Ol%C3%A1%21+Vim+pelo+site+e+gostaria+de+conhecer+melhor+o+seu+trabalho.+%F0%9F%98%8A',
+  whatsapp: whatsappLink(
+    'Olá! Vim pelo site e gostaria de conhecer melhor o seu trabalho. 😊',
+  ),
   instagram: 'https://www.instagram.com/anajulia.videomaker_/',
   instagramDm: 'https://ig.me/m/anajulia.videomaker_/',
 } as const
