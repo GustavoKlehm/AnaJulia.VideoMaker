@@ -26,11 +26,16 @@ promoção.
 ## Destaque do plano recomendado
 
 O design system proíbe acento cromático, então o plano recomendado **não pode**
-ser destacado por cor, fundo colorido ou badge chamativo. O destaque vem de:
+ser destacado por cor, fundo colorido ou badge chamativo. Escala, sombra ou
+deslocamento também são proibidos — o card não pode mudar de tamanho nem de
+posição. Só estes meios de destaque são permitidos:
 
 - borda `1px solid var(--color-foreground)` em vez de `var(--color-border)`
 - rótulo "Mais escolhido" em Inter 500, uppercase, `--tracking-label`
-- nada de escala, sombra ou deslocamento — o card não pode mudar de tamanho
+- CTA preenchido (invertido) no plano recomendado: `.tier--featured .tier__cta`
+  com `background: var(--color-primary)` — preto editorial (`--color-primary`),
+  não cor — e `color: var(--color-on-primary)`; os demais planos mantêm CTA só
+  com contorno
 
 ## Cards nesta página
 
