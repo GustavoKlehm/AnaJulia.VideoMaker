@@ -112,7 +112,7 @@ Os nomes dos pacotes de Momentos usam o vocabulário da marca — **Retrato, His
 
 **Casamento completo (making of + cerimônia + festa).** Sozinha, com uma câmera, ela não cobre os três blocos com a qualidade que o mercado local entrega por R$ 2.390 com equipe de dois e drone. Vender isso agora produziria a primeira avaliação ruim no produto de maior visibilidade. Entram no lugar as portas de entrada do mesmo público: pré-wedding, casamento civil e mini wedding. Casamento completo volta quando houver parceiro fixo de segunda câmera.
 
-**Drone.** Não possui. Pode aparecer como adicional sob consulta, contratando parceiro e repassando custo com margem. Nunca como item incluso.
+**Drone.** Fora do catálogo por enquanto. Não prometido como incluso nem como adicional.
 
 **Fotografia.** Não entrega. Não prometer.
 
@@ -166,7 +166,6 @@ Os três encostam no topo da faixa de iniciante propositalmente: a concorrência
 | Versão extra com legenda ou sem trilha | R$ 90 |
 | Entrega em até 48h (urgência) | +40% sobre o pacote |
 | Deslocamento acima de 20 km de Dois Vizinhos | R$ 2,00/km rodado (ida e volta) |
-| Drone, via parceiro | sob consulta |
 
 ### Personalizado
 
@@ -224,7 +223,7 @@ O prazo escrito é o folgado, não o otimista. Entregar antes constrói reputaç
 
 **Trilha sonora.** Biblioteca licenciada inclusa. Música específica escolhida pelo cliente só mediante licença dele — sem isso o Instagram derruba o áudio e a responsabilidade recai sobre ela. Precisa estar escrito na proposta.
 
-**Validade da proposta:** 15 dias.
+**Validade da proposta:** a proposta de preços enviada tem validade de 15 dias a partir do envio.
 
 ---
 

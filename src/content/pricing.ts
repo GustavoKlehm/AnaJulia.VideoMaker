@@ -184,7 +184,6 @@ export const addOns: readonly AddOn[] = [
     label: 'Deslocamento acima de 20 km de Dois Vizinhos',
     value: 'R$ 2,00/km rodado',
   },
-  { id: 'drone', label: 'Drone, via parceiro', value: 'Sob consulta' },
 ]
 
 export const pieces: readonly Piece[] = [
@@ -198,7 +197,7 @@ export const pieces: readonly Piece[] = [
     id: 'teaser',
     name: 'Teaser',
     purpose: 'Para postar',
-    body: 'O trailer do filme, de 30 a 60 segundos. Mesmo material, edição nova do zero: abre com o plano mais forte, corta rápido na batida da trilha e prende nos dois primeiros segundos. É a peça que faz alguém perguntar quem filmou.',
+    body: 'O trailer do filme, de 30 a 60 segundos. Mesmo material, edição nova do zero: abre com o plano mais forte, corta rápido na batida da trilha e prende nos dois primeiros segundos.',
   },
   {
     id: 'cortes',
@@ -253,7 +252,7 @@ export const rules: readonly Rule[] = [
   {
     id: 'validade',
     title: 'Validade',
-    body: 'Esta tabela vale por 15 dias a partir do envio da proposta.',
+    body: 'A proposta de preços enviada tem validade de 15 dias a partir do envio.',
   },
 ]
 
