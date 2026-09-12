@@ -1,3 +1,10 @@
+#marca,
+#historias,
+#sobre,
+#contato {
+  scroll-margin-top: calc(var(--space-2xl) + var(--space-md));
+}
+
 .skip-link {
   position: absolute;
   left: var(--space-md);

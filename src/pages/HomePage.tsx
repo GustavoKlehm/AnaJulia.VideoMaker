@@ -5,6 +5,7 @@ import { Reveal } from '../components/Reveal'
 import { RouteLink } from '../components/RouteLink'
 import { brand, contact, hero, showStories, slogan, sloganLines, stories } from '../content/site'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import { hashTargetId } from '../lib/homeHash'
 import './HomePage.css'
 
 export function HomePage() {
@@ -55,6 +56,24 @@ export function HomePage() {
       .then(() => setPlaying(true))
       .catch(() => setPlaying(false))
   }, [videoReady, reduced, inHero])
+
+  useEffect(() => {
+    function scrollToHash() {
+      const id = hashTargetId(window.location.hash)
+      if (!id) {
+        return
+      }
+      const target = document.getElementById(id)
+      if (!target) {
+        return
+      }
+      target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth' })
+    }
+
+    scrollToHash()
+    window.addEventListener('hashchange', scrollToHash)
+    return () => window.removeEventListener('hashchange', scrollToHash)
+  }, [reduced])
 
   function playHero() {
     const video = videoRef.current
