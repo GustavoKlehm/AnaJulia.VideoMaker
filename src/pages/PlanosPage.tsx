@@ -1,9 +1,10 @@
+import { InstagramLogo, WhatsappLogo } from '@phosphor-icons/react'
 import { SiteHeader } from '../components/SiteHeader'
 import { PlanTier } from '../components/PlanTier'
 import { Reveal } from '../components/Reveal'
 import type { PricingLine } from '../content/pricing'
-import { addOns, custom, formatBRL, lines } from '../content/pricing'
-import { whatsappLink } from '../content/site'
+import { addOns, custom, formatBRL, lines, pieces, rules } from '../content/pricing'
+import { contact, whatsappLink } from '../content/site'
 import './PlanosPage.css'
 
 function startingAt(line: PricingLine): string {
@@ -97,6 +98,83 @@ export function PlanosPage() {
                 </div>
               ))}
             </dl>
+          </div>
+        </section>
+
+        <section className="line" aria-labelledby="linha-pecas">
+          <div className="line__inner">
+            <Reveal>
+              <h2 className="line__title" id="linha-pecas">
+                O que é cada peça
+              </h2>
+              <p className="line__lead">
+                O filme é para guardar, o teaser é para postar, os cortes são para
+                não sumir do feed. Cada um dá um trabalho diferente — é por isso que
+                os planos custam preços diferentes.
+              </p>
+            </Reveal>
+            <div className="pieces">
+              {pieces.map((piece) => (
+                <article className="piece" key={piece.id}>
+                  <h3 className="piece__name">{piece.name}</h3>
+                  <p className="piece__purpose">{piece.purpose}</p>
+                  <p className="piece__body">{piece.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="line" aria-labelledby="linha-regras">
+          <div className="line__inner">
+            <Reveal>
+              <h2 className="line__title" id="linha-regras">
+                Como funciona
+              </h2>
+              <p className="line__lead">
+                As mesmas condições para todo mundo, combinadas antes de começar.
+              </p>
+            </Reveal>
+            <div className="rules">
+              {rules.map((rule) => (
+                <article className="rule" key={rule.id}>
+                  <h3 className="rule__title">{rule.title}</h3>
+                  <p className="rule__body">{rule.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="line planos__cta-final" aria-labelledby="linha-contato">
+          <div className="line__inner line__inner--narrow">
+            <Reveal>
+              <h2 className="line__title" id="linha-contato">
+                Conte o momento que você quer guardar
+              </h2>
+              <div className="planos__links">
+                <a
+                  className="tier__cta"
+                  href={whatsappLink(
+                    'Olá! Vim pela página de planos e queria conversar sobre um projeto.',
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <WhatsappLogo size={20} weight="regular" aria-hidden="true" />
+                  WhatsApp
+                </a>
+                <a
+                  className="tier__cta"
+                  href={contact.instagramDm}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <InstagramLogo size={20} weight="regular" aria-hidden="true" />
+                  Direct
+                </a>
+              </div>
+            </Reveal>
           </div>
         </section>
       </main>
