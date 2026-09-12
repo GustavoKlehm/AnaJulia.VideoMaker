@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { InstagramLogo, WhatsappLogo } from '@phosphor-icons/react'
 import { SiteHeader } from '../components/SiteHeader'
 import { Reveal } from '../components/Reveal'
+import { RouteLink } from '../components/RouteLink'
 import { brand, contact, hero, showStories, slogan, sloganLines, stories } from '../content/site'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import './HomePage.css'
@@ -174,6 +175,11 @@ export function HomePage() {
             </Reveal>
             <Reveal className="about__echo">
               <p>{slogan}.</p>
+            </Reveal>
+            <Reveal>
+              <RouteLink className="about__link" to="/planos">
+                Ver planos e valores
+              </RouteLink>
             </Reveal>
           </div>
         </section>
