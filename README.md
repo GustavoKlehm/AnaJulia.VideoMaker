@@ -11,11 +11,13 @@ npm run dev
 ```
 
 - Frontend: [http://localhost:5173](http://localhost:5173)
-- API: [http://localhost:3001/api/health](http://localhost:3001/api/health)
+- API: [http://localhost:3002/api/health](http://localhost:3002/api/health)
+
+O botão de ajuda (home e `/planos`) usa a Groq. Crie uma chave gratuita em [console.groq.com](https://console.groq.com) e coloque em `GROQ_API_KEY`. Sem ela, o painel avisa que a ajuda está indisponível e aponta o WhatsApp. Na Vercel, configure a mesma variável.
 
 ## Variáveis
 
-Copie `.env.example` e preencha as chaves do projeto no Supabase. Na Vercel, configure as mesmas variáveis no painel do projeto.
+Copie `.env.example` e preencha as chaves do projeto no Supabase e a `GROQ_API_KEY`. Na Vercel, configure as mesmas variáveis no painel do projeto.
 
 ## Deploy
 

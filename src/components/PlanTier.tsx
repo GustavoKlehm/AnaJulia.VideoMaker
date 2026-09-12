@@ -1,3 +1,4 @@
+import { planWhatsappMessage } from '../content/cmsMap'
 import type { PricingLine, Tier } from '../content/pricing'
 import { formatBRL } from '../content/pricing'
 import { whatsappLink } from '../content/site'
@@ -5,9 +6,11 @@ import { whatsappLink } from '../content/site'
 type PlanTierProps = {
   tier: Tier
   unit: PricingLine['unit']
+  planMessage: string
+  phone: string
 }
 
-export function PlanTier({ tier, unit }: PlanTierProps) {
+export function PlanTier({ tier, unit, planMessage, phone }: PlanTierProps) {
   const classes = `tier${tier.featured ? ' tier--featured' : ''}`
 
   return (
@@ -26,9 +29,7 @@ export function PlanTier({ tier, unit }: PlanTierProps) {
       </ul>
       <a
         className="tier__cta"
-        href={whatsappLink(
-          `Olá! Vim pelo site e queria saber mais sobre o plano ${tier.name}.`,
-        )}
+        href={whatsappLink(planWhatsappMessage(planMessage, tier.name), phone)}
         target="_blank"
         rel="noopener noreferrer"
       >

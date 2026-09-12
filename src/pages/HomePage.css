@@ -125,6 +125,7 @@
 }
 
 .brand {
+  position: relative;
   min-height: 100svh;
   display: grid;
   place-items: center;
@@ -179,6 +180,7 @@
 
 .about,
 .contact {
+  position: relative;
   min-height: 100svh;
   display: grid;
   place-items: center;
@@ -280,6 +282,27 @@
   opacity: 0.72;
 }
 
+.contact__safe {
+  position: absolute;
+  left: max(var(--space-md), env(safe-area-inset-left));
+  bottom: max(var(--space-md), env(safe-area-inset-bottom));
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--color-foreground);
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity var(--duration-hover) ease;
+}
+
+.contact__safe:hover,
+.contact__safe:focus-visible {
+  opacity: 0.72;
+}
+
 @media (min-width: 768px) {
   .contact__grid {
     grid-template-columns: 1fr 1fr;
@@ -339,6 +362,11 @@
 
   .brand__logo {
     width: min(48vw, 480px);
+  }
+
+  .contact__safe {
+    left: max(var(--space-xl), env(safe-area-inset-left));
+    bottom: max(var(--space-lg), env(safe-area-inset-bottom));
   }
 
   .chapter__copy {

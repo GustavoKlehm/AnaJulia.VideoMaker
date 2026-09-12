@@ -5,9 +5,10 @@ type RouteLinkProps = {
   to: string
   className?: string
   children: ReactNode
+  'aria-label'?: string
 }
 
-export function RouteLink({ to, className, children }: RouteLinkProps) {
+export function RouteLink({ to, className, children, 'aria-label': ariaLabel }: RouteLinkProps) {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) {
       return
@@ -18,7 +19,7 @@ export function RouteLink({ to, className, children }: RouteLinkProps) {
   }
 
   return (
-    <a className={className} href={to} onClick={handleClick}>
+    <a className={className} href={to} aria-label={ariaLabel} onClick={handleClick}>
       {children}
     </a>
   )

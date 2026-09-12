@@ -1,4 +1,5 @@
-import { brand, nav } from '../content/site'
+import { useCms } from '../content/cmsContext'
+import { buildNav } from '../content/site'
 import { navHref, useRoute } from '../lib/router'
 import { RouteLink } from './RouteLink'
 import './SiteHeader.css'
@@ -9,19 +10,21 @@ type SiteHeaderProps = {
 
 export function SiteHeader({ onCinema }: SiteHeaderProps) {
   const route = useRoute()
+  const { site } = useCms()
+  const items = buildNav(site.showStories)
 
   return (
     <header className={`site-header${onCinema ? ' site-header--cinema' : ''}`}>
       <RouteLink className="site-header__brand" to="/">
         <img
-          src={onCinema ? brand.iconNegative : brand.icon}
+          src={onCinema ? site.brand.iconNegative : site.brand.icon}
           width={820}
           height={820}
           alt="Ana Julia"
         />
       </RouteLink>
       <nav className="site-header__nav" aria-label="Principal">
-        {nav.map((item) =>
+        {items.map((item) =>
           item.route ? (
             <RouteLink key={item.href} to={item.href}>
               {item.label}

@@ -17,8 +17,17 @@ export const hero = {
 
 export const whatsappPhone = '5546999343683'
 
-export function whatsappLink(message: string): string {
-  return `https://api.whatsapp.com/send/?phone=${whatsappPhone}&text=${encodeURIComponent(message)}`
+export function whatsappLink(message: string, phone = whatsappPhone): string {
+  return `https://api.whatsapp.com/send/?phone=${phone}&text=${encodeURIComponent(message)}`
+}
+
+export function buildNav(storiesVisible: boolean): NavItem[] {
+  return [
+    ...(storiesVisible ? [{ href: '#historias', label: 'Histórias' }] : []),
+    { href: '/planos', label: 'Planos', route: true },
+    { href: '#sobre', label: 'Sobre' },
+    { href: '#contato', label: 'Contato' },
+  ]
 }
 
 export const contact = {
@@ -37,12 +46,7 @@ export type NavItem = {
   route?: boolean
 }
 
-export const nav: readonly NavItem[] = [
-  ...(showStories ? [{ href: '#historias', label: 'Histórias' }] : []),
-  { href: '/planos', label: 'Planos', route: true },
-  { href: '#sobre', label: 'Sobre' },
-  { href: '#contato', label: 'Contato' },
-]
+export const nav: readonly NavItem[] = buildNav(showStories)
 
 export const stories: {
   id: string

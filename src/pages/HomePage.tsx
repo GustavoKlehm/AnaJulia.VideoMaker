@@ -1,14 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
-import { InstagramLogo, WhatsappLogo } from '@phosphor-icons/react'
+import { FishSimple, InstagramLogo, WhatsappLogo } from '@phosphor-icons/react'
 import { SiteHeader } from '../components/SiteHeader'
 import { Reveal } from '../components/Reveal'
 import { RouteLink } from '../components/RouteLink'
-import { brand, contact, hero, showStories, slogan, sloganLines, stories } from '../content/site'
+import { useCms } from '../content/cmsContext'
+import { whatsappLink } from '../content/site'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
 import { hashTargetId } from '../lib/homeHash'
 import './HomePage.css'
 
+function Lines({ text }: { text: string }) {
+  return text.split('\n').map((line, index) => (
+    <span key={`${line}-${index}`}>
+      {index > 0 ? <br /> : null}
+      {line}
+    </span>
+  ))
+}
+
 export function HomePage() {
+  const { site } = useCms()
   const reduced = usePrefersReducedMotion()
   const heroRef = useRef<HTMLElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
@@ -19,7 +30,13 @@ export function HomePage() {
   const [playing, setPlaying] = useState(false)
   const [failed, setFailed] = useState(false)
 
-  const hasVideo = Boolean(hero.video) && !failed
+  const hasVideo = Boolean(site.heroVideo) && !failed
+
+  useEffect(() => {
+    setVideoReady(false)
+    setFailed(false)
+    setPlaying(false)
+  }, [site.heroVideo])
 
   useEffect(() => {
     const node = heroRef.current
@@ -113,7 +130,7 @@ export function HomePage() {
             <video
               ref={videoRef}
               className={`hero__video${videoReady ? ' is-ready' : ''}${playing ? ' is-playing' : ''}`}
-              src={hero.video}
+              src={site.heroVideo}
               muted
               loop
               playsInline
@@ -126,11 +143,11 @@ export function HomePage() {
           ) : null}
 
           <div className="hero__copy">
-            <p className="hero__roles">Storymaker · Videomaker</p>
+            <p className="hero__roles">{site.rolesLine}</p>
             <h1 className="hero__slogan">
-              {sloganLines[0]}
+              {site.sloganLines[0]}
               <br />
-              {sloganLines[1]}
+              {site.sloganLines[1]}
             </h1>
           </div>
 
@@ -144,24 +161,24 @@ export function HomePage() {
             </button>
           ) : null}
 
-          <a className="hero__scroll" href={showStories ? '#historias' : '#sobre'}>
-            {showStories ? 'Histórias' : 'Sobre'}
+          <a className="hero__scroll" href={site.showStories ? '#historias' : '#sobre'}>
+            {site.showStories ? 'Histórias' : 'Sobre'}
           </a>
         </section>
 
         <section id="marca" className="brand" aria-label="Marca">
           <img
             className="brand__logo"
-            src={brand.wordmark}
+            src={site.brand.wordmark}
             width={1024}
             height={1024}
             alt="Ana Julia — Storymaker e Videomaker"
           />
         </section>
 
-        {showStories ? (
+        {site.showStories ? (
           <section id="historias" className="stories" aria-label="Histórias">
-            {stories.map((story) => (
+            {site.stories.map((story) => (
               <article
                 key={story.id}
                 id={story.id}
@@ -169,7 +186,18 @@ export function HomePage() {
                 data-theme="cinema"
               >
                 {story.media ? (
-                  <img className="chapter__media" src={story.media} alt="" />
+                  /\.(mov|mp4|webm)(\?|$)/i.test(story.media) ? (
+                    <video
+                      className="chapter__media"
+                      src={story.media}
+                      muted
+                      loop
+                      playsInline
+                      autoPlay={!reduced}
+                    />
+                  ) : (
+                    <img className="chapter__media" src={story.media} alt="" />
+                  )
                 ) : null}
                 <Reveal className="chapter__copy">
                   <h2>{story.title}</h2>
@@ -183,21 +211,18 @@ export function HomePage() {
         <section id="sobre" className="about">
           <div className="about__inner">
             <Reveal>
-              <h2>Sobre</h2>
+              <h2>{site.about.heading}</h2>
             </Reveal>
             <Reveal>
-              <p>
-                Acreditamos que cada história começa nas experiências, nos
-                detalhes e nos momentos que merecem ser contados.
-              </p>
-              <p>Registramos marcas, eventos e momentos especiais.</p>
+              <p>{site.about.p1}</p>
+              <p>{site.about.p2}</p>
             </Reveal>
             <Reveal className="about__echo">
-              <p>{slogan}.</p>
+              <p>{site.slogan}.</p>
             </Reveal>
             <Reveal>
               <RouteLink className="about__link" to="/planos">
-                Ver planos e valores
+                {site.about.ctaLabel}
               </RouteLink>
             </Reveal>
           </div>
@@ -206,19 +231,17 @@ export function HomePage() {
         <section id="contato" className="contact">
           <div className="contact__inner">
             <Reveal>
-              <h2>Contato</h2>
+              <h2>{site.contactCopy.heading}</h2>
             </Reveal>
             <Reveal className="contact__grid">
               <div className="contact__col">
                 <p>
-                  Conte o momento
-                  <br />
-                  que você quer guardar
+                  <Lines text={site.contactCopy.lead} />
                 </p>
                 <div className="contact__links">
                   <a
                     className="contact__button"
-                    href={contact.whatsapp}
+                    href={whatsappLink(site.messages.home, site.whatsappPhone)}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Conversar no WhatsApp"
@@ -228,7 +251,7 @@ export function HomePage() {
                   </a>
                   <a
                     className="contact__button"
-                    href={contact.instagramDm}
+                    href={site.instagramDmUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Enviar Direct no Instagram"
@@ -240,14 +263,12 @@ export function HomePage() {
               </div>
               <div className="contact__col">
                 <p>
-                  Conheça meu trabalho
-                  <br />
-                  no Instagram
+                  <Lines text={site.contactCopy.instagramLead} />
                 </p>
                 <div className="contact__links">
                   <a
                     className="contact__button"
-                    href={contact.instagram}
+                    href={site.instagramUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Abrir Instagram de Ana Julia"
@@ -259,6 +280,9 @@ export function HomePage() {
               </div>
             </Reveal>
           </div>
+          <RouteLink className="contact__safe" to="/estudio" aria-label="Área segura">
+            <FishSimple size={24} weight="regular" aria-hidden="true" />
+          </RouteLink>
         </section>
       </main>
     </>

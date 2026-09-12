@@ -1,11 +1,42 @@
 import { useEffect, useState } from 'react'
 import type { NavItem } from '../content/site'
 
-export type Route = 'home' | 'planos'
+export type Route = 'home' | 'planos' | 'estudio'
+export type EstudioPath = 'inicio' | 'catalogo' | 'pagina-home' | 'historias' | 'materiais' | 'equipe'
+
+export function assistenteVisible(route: Route): boolean {
+  return route === 'home' || route === 'planos'
+}
 
 export function resolveRoute(pathname: string): Route {
-  const normalized = pathname.replace(/\/+$/, '')
-  return normalized === '/planos' ? 'planos' : 'home'
+  const normalized = pathname.replace(/\/+$/, '') || '/'
+  if (normalized === '/planos') {
+    return 'planos'
+  }
+  if (normalized === '/estudio' || normalized.startsWith('/estudio/')) {
+    return 'estudio'
+  }
+  return 'home'
+}
+
+export function resolveEstudioPath(pathname: string): EstudioPath {
+  const normalized = pathname.replace(/\/+$/, '') || '/'
+  if (normalized === '/estudio/catalogo') {
+    return 'catalogo'
+  }
+  if (normalized === '/estudio/paginas/home') {
+    return 'pagina-home'
+  }
+  if (normalized === '/estudio/historias') {
+    return 'historias'
+  }
+  if (normalized === '/estudio/materiais') {
+    return 'materiais'
+  }
+  if (normalized === '/estudio/equipe') {
+    return 'equipe'
+  }
+  return 'inicio'
 }
 
 export function navHref(item: NavItem, route: Route): string {
@@ -16,10 +47,13 @@ export function navHref(item: NavItem, route: Route): string {
 }
 
 export function navigate(to: string): void {
-  if (window.location.pathname === to) {
+  const url = new URL(to, window.location.origin)
+  const next = `${url.pathname}${url.search}`
+  const current = `${window.location.pathname}${window.location.search}`
+  if (current === next) {
     return
   }
-  window.history.pushState({}, '', to)
+  window.history.pushState({}, '', next)
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 

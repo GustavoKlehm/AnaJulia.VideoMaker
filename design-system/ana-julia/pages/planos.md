@@ -9,14 +9,26 @@
 ## Concept
 
 Papel do começo ao fim. Sem cinema, sem vídeo, sem full-bleed. A página é um
-documento editorial: o cliente lê, compara e decide. Preço é informação, não
-promoção.
+documento editorial interativo: o cliente reconhece a necessidade, e o
+conteúdo abaixo se adapta. Não é wizard, não é calculadora, não é
+"passo 1 de 3".
+
+Preço é informação, não promoção. Progressive disclosure reduz complexidade;
+não esconde o que o cliente já escolheu ver. "Ver todos os planos" existe
+para quem prefere comparar de uma vez.
+
+A seleção vive na URL (`/planos?tipo=momentos&plano=historia`) para o link
+ser compartilhável.
 
 ## Layout
 
-1. **Intro** (`#planos-conteudo`) — título serif e lead curto, centralizados.
-2. **Linhas** — Momentos, Ocasiões e Marcas, cada uma numa faixa separada por
-   hairline superior. Dentro de cada linha, os planos em grid auto-fit.
+1. **Intro** (`#planos-conteudo`) — pergunta serif: "O que você quer guardar?"
+2. **Seletor persistente** — Momentos · Ocasiões · Marcas, com a promessa de
+   cada linha. Abaixo, o conteúdo muda. Alternativa: "Ver todos os planos".
+3. **Guia** — segunda pergunta na linguagem da necessidade (guardar, receber,
+   ritmo). O plano escolhido se revela abaixo, com preço, o que está incluso
+   e o CTA. Ocasiões tem dois recortes: como recebe, depois quanto tempo.
+4. **Vista completa** — as três linhas em cards, para quem pediu "ver todos".
 3. **Personalizado** — bloco de texto centralizado, sem preço, com CTA.
 4. **Adicionais** — lista de duas colunas, rótulo à esquerda e valor à direita.
 5. **Peças** — dicionário de filme, teaser, cortes e bruto.

@@ -4,8 +4,9 @@ export const MARGIN = 1.3
 export type Tier = {
   id: string
   name: string
+  need: string
   capture: string
-  delivery: readonly string[]
+  delivery: string[]
   hours: number
   price: number
   featured: boolean
@@ -14,10 +15,12 @@ export type Tier = {
 export type PricingLine = {
   id: string
   title: string
+  promise: string
   lead: string
+  prompt: string
   display: 'exact' | 'from'
   unit: 'project' | 'month'
-  tiers: readonly Tier[]
+  tiers: Tier[]
 }
 
 export type AddOn = {
@@ -43,13 +46,16 @@ export const lines: readonly PricingLine[] = [
   {
     id: 'momentos',
     title: 'Momentos',
+    promise: 'Pequenas histórias que merecem ser lembradas.',
     lead: 'Ensaios, pré-wedding, família, gestante, aniversário. Para guardar um capítulo da sua própria história.',
+    prompt: 'Como você quer guardar esse momento?',
     display: 'exact',
     unit: 'project',
     tiers: [
       {
         id: 'retrato',
         name: 'Retrato',
+        need: 'Para registrar um momento pontual.',
         capture: '1h de captação, 1 locação',
         delivery: ['1 filme de até 60s, vertical ou horizontal — você escolhe'],
         hours: 5.5,
@@ -59,6 +65,7 @@ export const lines: readonly PricingLine[] = [
       {
         id: 'historia',
         name: 'História',
+        need: 'Para contar esse momento com mais detalhes.',
         capture: '2h de captação, até 2 locações',
         delivery: [
           '1 filme de até 2 min, vertical ou horizontal — você escolhe',
@@ -71,6 +78,7 @@ export const lines: readonly PricingLine[] = [
       {
         id: 'capitulo',
         name: 'Capítulo',
+        need: 'Para viver e registrar a experiência de forma mais completa.',
         capture: '4h de captação, até 3 locações, com direção prévia',
         delivery: ['1 filme de até 4 min', '1 teaser de 60s', '3 cortes verticais'],
         hours: 18,
@@ -82,13 +90,16 @@ export const lines: readonly PricingLine[] = [
   {
     id: 'ocasioes',
     title: 'Ocasiões',
+    promise: 'Dias que merecem ser vividos e registrados por inteiro.',
     lead: '15 anos, batizado, formatura, casamento civil, confraternização. Um dia inteiro ou meio período.',
+    prompt: 'Como você quer receber esse registro?',
     display: 'from',
     unit: 'project',
     tiers: [
       {
         id: 'captacao-meia',
         name: 'Só captação — meia diária',
+        need: 'O material registrado, organizado, sem edição.',
         capture: 'Até 4h de cobertura',
         delivery: ['Material bruto organizado, entregue por link'],
         hours: 6.5,
@@ -98,6 +109,7 @@ export const lines: readonly PricingLine[] = [
       {
         id: 'captacao-diaria',
         name: 'Só captação — diária',
+        need: 'O material registrado, organizado, sem edição.',
         capture: 'Até 8h de cobertura',
         delivery: ['Material bruto organizado, entregue por link'],
         hours: 11,
@@ -107,6 +119,7 @@ export const lines: readonly PricingLine[] = [
       {
         id: 'meia-diaria',
         name: 'Meia diária',
+        need: 'Conteúdo tratado e pronto para assistir e compartilhar.',
         capture: 'Até 4h de cobertura',
         delivery: ['1 filme de até 3 min', '1 corte vertical'],
         hours: 13,
@@ -116,6 +129,7 @@ export const lines: readonly PricingLine[] = [
       {
         id: 'diaria',
         name: 'Diária',
+        need: 'Conteúdo tratado e pronto para assistir e compartilhar.',
         capture: 'Até 8h de cobertura',
         delivery: ['1 filme de até 5 min', '1 teaser', '2 cortes verticais'],
         hours: 24,
@@ -127,13 +141,16 @@ export const lines: readonly PricingLine[] = [
   {
     id: 'marcas',
     title: 'Marcas',
+    promise: 'Histórias que sua marca quer contar.',
     lead: 'Conteúdo recorrente para comércio e serviço. Eu vou até você filmar — não é edição de material que você manda.',
+    prompt: 'Qual ritmo combina com sua marca?',
     display: 'from',
     unit: 'month',
     tiers: [
       {
         id: 'presenca',
         name: 'Presença',
+        need: 'Duas peças por mês, uma ida.',
         capture: '1h30 de captação por mês',
         delivery: ['2 peças verticais de até 45s', '1 rodada de revisão por peça'],
         hours: 6.5,
@@ -143,6 +160,7 @@ export const lines: readonly PricingLine[] = [
       {
         id: 'ritmo',
         name: 'Ritmo',
+        need: 'Quatro peças por mês, uma ida.',
         capture: '3h de captação por mês',
         delivery: ['4 peças verticais de até 45s', '1 rodada de revisão por peça'],
         hours: 12,
@@ -152,6 +170,7 @@ export const lines: readonly PricingLine[] = [
       {
         id: 'narrativa',
         name: 'Narrativa',
+        need: 'Oito peças por mês, em duas idas.',
         capture: '6h de captação por mês, em 2 idas',
         delivery: ['8 peças verticais de até 45s', '1 rodada de revisão por peça'],
         hours: 22,
@@ -255,6 +274,23 @@ export const rules: readonly Rule[] = [
     body: 'A proposta de preços enviada tem validade de 15 dias a partir do envio.',
   },
 ]
+
+export const ocasioesChoices = {
+  receivePrompt: 'Como você quer receber esse registro?',
+  timePrompt: 'Quanto tempo você precisa?',
+  bruto: {
+    id: 'bruto' as const,
+    label: 'Só captação',
+    lead: 'Você recebe todo o material registrado.',
+  },
+  editado: {
+    id: 'editado' as const,
+    label: 'Captação + edição',
+    lead: 'Você recebe os conteúdos tratados e prontos para assistir e compartilhar.',
+  },
+  meia: { id: 'meia' as const, label: 'Meia diária', lead: 'Até 4 horas.' },
+  diaria: { id: 'diaria' as const, label: 'Diária', lead: 'Até 8 horas.' },
+}
 
 export function formatBRL(value: number): string {
   return value.toLocaleString('pt-BR', {

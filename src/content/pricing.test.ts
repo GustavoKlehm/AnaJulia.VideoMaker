@@ -63,6 +63,16 @@ describe('tabela de preços', () => {
     expect(lines.map((line) => line.id)).toEqual(['momentos', 'ocasioes', 'marcas'])
   })
 
+  it('cada linha tem uma promessa e cada plano uma necessidade', () => {
+    for (const line of lines) {
+      expect(line.promise.trim().length).toBeGreaterThan(0)
+      expect(line.prompt.trim().length).toBeGreaterThan(0)
+      for (const tier of line.tiers) {
+        expect(tier.need.trim().length, tier.id).toBeGreaterThan(0)
+      }
+    }
+  })
+
   it('a linha Marcas é cobrada por mês', () => {
     const marcas = lines.find((line) => line.id === 'marcas')
     expect(marcas?.unit).toBe('month')
