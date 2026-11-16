@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { NavItem } from '../content/site'
 
-export type Route = 'home' | 'planos' | 'estudio'
-export type EstudioPath = 'inicio' | 'catalogo' | 'pagina-home' | 'historias' | 'materiais' | 'equipe'
-
-export function assistenteVisible(route: Route): boolean {
-  return route === 'home' || route === 'planos'
-}
+export type Route = 'home' | 'planos' | 'estudio' | 'cliente'
+export type EstudioPath =
+  | 'inicio'
+  | 'catalogo'
+  | 'pagina-home'
+  | 'historias'
+  | 'materiais'
+  | 'equipe'
+  | 'clientes'
+  | 'cliente'
 
 export function resolveRoute(pathname: string): Route {
   const normalized = pathname.replace(/\/+$/, '') || '/'
@@ -16,7 +20,24 @@ export function resolveRoute(pathname: string): Route {
   if (normalized === '/estudio' || normalized.startsWith('/estudio/')) {
     return 'estudio'
   }
+  if (normalized === '/cliente' || normalized.startsWith('/cliente/')) {
+    return 'cliente'
+  }
   return 'home'
+}
+
+export type PortalPath = { view: 'inicio' } | { view: 'plano'; slug: string; periodo: string }
+
+/** /cliente → lista de planos; /cliente/<slug>/<periodo> → um plano. */
+export function resolvePortalPath(pathname: string): PortalPath {
+  const match = /^\/cliente\/([a-z0-9-]+)\/([a-z0-9-]+)\/?$/.exec(pathname)
+  return match ? { view: 'plano', slug: match[1], periodo: match[2] } : { view: 'inicio' }
+}
+
+/** Slug do cliente em /estudio/clientes/<slug>. */
+export function estudioClienteSlug(pathname: string): string | null {
+  const match = /^\/estudio\/clientes\/([a-z0-9-]+)\/?$/.exec(pathname)
+  return match ? match[1] : null
 }
 
 export function resolveEstudioPath(pathname: string): EstudioPath {
@@ -35,6 +56,12 @@ export function resolveEstudioPath(pathname: string): EstudioPath {
   }
   if (normalized === '/estudio/equipe') {
     return 'equipe'
+  }
+  if (normalized === '/estudio/clientes') {
+    return 'clientes'
+  }
+  if (estudioClienteSlug(normalized)) {
+    return 'cliente'
   }
   return 'inicio'
 }

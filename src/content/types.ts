@@ -57,15 +57,6 @@ export type SiteContent = {
   stories: StoryContent[]
 }
 
-export type OcasioesChoices = {
-  receivePrompt: string
-  timePrompt: string
-  bruto: { id: 'bruto'; label: string; lead: string }
-  editado: { id: 'editado'; label: string; lead: string }
-  meia: { id: 'meia'; label: string; lead: string }
-  diaria: { id: 'diaria'; label: string; lead: string }
-}
-
 export type PricingCatalog = {
   lines: PricingLine[]
   addOns: AddOn[]
@@ -76,7 +67,6 @@ export type PricingCatalog = {
     lead: string
     floor: number
   }
-  ocasioesChoices: OcasioesChoices
 }
 
 export type MediaAssetRow = {
@@ -135,6 +125,7 @@ export type PricingLineRow = {
   id: string
   title: string
   promise: string
+  hint: string
   lead: string
   prompt: string
   display: 'exact' | 'from' | string
@@ -170,17 +161,4 @@ export type PricingCustomRow = {
   title: string
   lead: string
   floor: number
-}
-
-export type PricingOcasioesRow = {
-  receive_prompt: string
-  time_prompt: string
-  bruto_label: string
-  bruto_lead: string
-  editado_label: string
-  editado_lead: string
-  meia_label: string
-  meia_lead: string
-  diaria_label: string
-  diaria_lead: string
 }

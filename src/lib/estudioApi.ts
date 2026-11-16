@@ -13,7 +13,7 @@ export function messageForFailedStudioResponse(status: number): string {
   return 'O estúdio não respondeu.'
 }
 
-async function estudioRequest<T>(
+export async function estudioRequest<T>(
   path: string,
   session: Session,
   init?: RequestInit,

@@ -90,7 +90,6 @@ describe('mapPricing', () => {
       pieces: [],
       rules: [],
       custom: null,
-      ocasioes: null,
     })
     expect(catalog.lines.map((line) => line.id)).toEqual(
       fallbackPricing.lines.map((line) => line.id),
@@ -104,6 +103,7 @@ describe('mapPricing', () => {
           id: 'momentos',
           title: 'Momentos',
           promise: 'P',
+          hint: 'H',
           lead: 'L',
           prompt: '?',
           display: 'exact',
@@ -145,18 +145,6 @@ describe('mapPricing', () => {
       ],
       rules: [{ id: 'sinal', title: 'Sinal', body: '30%', sort_order: 0 }],
       custom: { title: 'Personalizado', lead: 'Lead', floor: 350 },
-      ocasioes: {
-        receive_prompt: 'Receber?',
-        time_prompt: 'Tempo?',
-        bruto_label: 'Bruto',
-        bruto_lead: 'Lead bruto',
-        editado_label: 'Editado',
-        editado_lead: 'Lead editado',
-        meia_label: 'Meia',
-        meia_lead: '4h',
-        diaria_label: 'Diária',
-        diaria_lead: '8h',
-      },
     })
 
     expect(catalog.lines[0]?.tiers.map((tier) => tier.id)).toEqual([
@@ -164,7 +152,7 @@ describe('mapPricing', () => {
       'historia',
     ])
     expect(catalog.custom.floor).toBe(350)
-    expect(catalog.ocasioesChoices.bruto.label).toBe('Bruto')
+    expect(catalog.lines[0]?.hint).toBe('H')
   })
 })
 

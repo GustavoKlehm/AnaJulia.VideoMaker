@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assistenteVisible, navHref, resolveEstudioPath, resolveRoute } from './router'
+import { estudioClienteSlug, navHref, resolveEstudioPath, resolvePortalPath, resolveRoute } from './router'
 
 describe('resolveRoute', () => {
   it('reconhece a rota de planos', () => {
@@ -37,14 +37,32 @@ describe('resolveEstudioPath', () => {
     expect(resolveEstudioPath('/estudio/historias')).toBe('historias')
     expect(resolveEstudioPath('/estudio/materiais')).toBe('materiais')
     expect(resolveEstudioPath('/estudio/equipe')).toBe('equipe')
+    expect(resolveEstudioPath('/estudio/clientes')).toBe('clientes')
+    expect(resolveEstudioPath('/estudio/clientes/soul-circo')).toBe('cliente')
+  })
+
+  it('lê o slug do cliente no estúdio', () => {
+    expect(estudioClienteSlug('/estudio/clientes/soul-circo')).toBe('soul-circo')
+    expect(estudioClienteSlug('/estudio/clientes')).toBeNull()
   })
 })
 
-describe('assistenteVisible', () => {
-  it('aparece na home e em planos, não no estúdio', () => {
-    expect(assistenteVisible('home')).toBe(true)
-    expect(assistenteVisible('planos')).toBe(true)
-    expect(assistenteVisible('estudio')).toBe(false)
+describe('área do cliente', () => {
+  it('reconhece /cliente e as subrotas', () => {
+    expect(resolveRoute('/cliente')).toBe('cliente')
+    expect(resolveRoute('/cliente/soul-circo/2026-12')).toBe('cliente')
+    expect(resolveRoute('/clientes')).toBe('home')
+  })
+
+  it('separa a lista do plano', () => {
+    expect(resolvePortalPath('/cliente')).toEqual({ view: 'inicio' })
+    expect(resolvePortalPath('/cliente/soul-circo/2026-12')).toEqual({
+      view: 'plano',
+      slug: 'soul-circo',
+      periodo: '2026-12',
+    })
+    expect(resolvePortalPath('/cliente/soul-circo/2026-11-e-12/')).toMatchObject({ periodo: '2026-11-e-12' })
+    expect(resolvePortalPath('/cliente/Soul/x')).toEqual({ view: 'inicio' })
   })
 })
 

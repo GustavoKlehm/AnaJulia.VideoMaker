@@ -110,6 +110,15 @@
   color: var(--color-muted-foreground);
 }
 
+.seek__hint {
+  font-size: 0.8rem;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--color-muted-foreground);
+  text-align: left;
+}
+
 .seek__line,
 .choice {
   position: relative;
@@ -314,7 +323,10 @@
     padding-right: var(--space-xl);
   }
 
-  .seek__lines,
+  .seek__lines {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .choices {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -357,6 +369,16 @@
   font-size: 0.95rem;
   font-weight: 300;
   line-height: 1.6;
+  color: var(--color-muted-foreground);
+}
+
+.line__hint {
+  margin: var(--space-sm) 0 0;
+  max-width: 52ch;
+  font-size: 0.85rem;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.5;
   color: var(--color-muted-foreground);
 }
 

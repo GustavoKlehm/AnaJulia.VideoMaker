@@ -57,6 +57,15 @@ export function EstudioCatalogo() {
             />
           </label>
           <label className="estudio-field">
+            <span>Exemplo ou público (abaixo da promessa)</span>
+            <input
+              value={line.hint}
+              onChange={(event) =>
+                updateLine(setDraft, lineIndex, { hint: event.target.value })
+              }
+            />
+          </label>
+          <label className="estudio-field">
             <span>Texto da linha</span>
             <textarea
               value={line.lead}
@@ -277,136 +286,6 @@ export function EstudioCatalogo() {
             }
           />
         </label>
-      </section>
-
-      <section className="estudio-card">
-        <h2>Ocasiões — escolhas do guia</h2>
-        <label className="estudio-field">
-          <span>Pergunta de entrega</span>
-          <input
-            value={draft.ocasioesChoices.receivePrompt}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                ocasioesChoices: {
-                  ...current.ocasioesChoices,
-                  receivePrompt: event.target.value,
-                },
-              }))
-            }
-          />
-        </label>
-        <label className="estudio-field">
-          <span>Pergunta de tempo</span>
-          <input
-            value={draft.ocasioesChoices.timePrompt}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                ocasioesChoices: {
-                  ...current.ocasioesChoices,
-                  timePrompt: event.target.value,
-                },
-              }))
-            }
-          />
-        </label>
-        <div className="estudio-inline">
-          <label className="estudio-field">
-            <span>Só captação — nome</span>
-            <input
-              value={draft.ocasioesChoices.bruto.label}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  ocasioesChoices: {
-                    ...current.ocasioesChoices,
-                    bruto: { ...current.ocasioesChoices.bruto, label: event.target.value },
-                  },
-                }))
-              }
-            />
-          </label>
-          <label className="estudio-field">
-            <span>Só captação — texto</span>
-            <input
-              value={draft.ocasioesChoices.bruto.lead}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  ocasioesChoices: {
-                    ...current.ocasioesChoices,
-                    bruto: { ...current.ocasioesChoices.bruto, lead: event.target.value },
-                  },
-                }))
-              }
-            />
-          </label>
-        </div>
-        <div className="estudio-inline">
-          <label className="estudio-field">
-            <span>Com edição — nome</span>
-            <input
-              value={draft.ocasioesChoices.editado.label}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  ocasioesChoices: {
-                    ...current.ocasioesChoices,
-                    editado: { ...current.ocasioesChoices.editado, label: event.target.value },
-                  },
-                }))
-              }
-            />
-          </label>
-          <label className="estudio-field">
-            <span>Com edição — texto</span>
-            <input
-              value={draft.ocasioesChoices.editado.lead}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  ocasioesChoices: {
-                    ...current.ocasioesChoices,
-                    editado: { ...current.ocasioesChoices.editado, lead: event.target.value },
-                  },
-                }))
-              }
-            />
-          </label>
-        </div>
-        <div className="estudio-inline">
-          <label className="estudio-field">
-            <span>Meia — nome</span>
-            <input
-              value={draft.ocasioesChoices.meia.label}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  ocasioesChoices: {
-                    ...current.ocasioesChoices,
-                    meia: { ...current.ocasioesChoices.meia, label: event.target.value },
-                  },
-                }))
-              }
-            />
-          </label>
-          <label className="estudio-field">
-            <span>Diária — nome</span>
-            <input
-              value={draft.ocasioesChoices.diaria.label}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  ocasioesChoices: {
-                    ...current.ocasioesChoices,
-                    diaria: { ...current.ocasioesChoices.diaria, label: event.target.value },
-                  },
-                }))
-              }
-            />
-          </label>
-        </div>
       </section>
 
       <ListEditor

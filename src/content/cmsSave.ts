@@ -84,6 +84,7 @@ export async function savePricing(client: SupabaseClient, catalog: PricingCatalo
     id: line.id,
     title: line.title,
     promise: line.promise,
+    hint: line.hint,
     lead: line.lead,
     prompt: line.prompt,
     display: line.display,
@@ -159,22 +160,6 @@ export async function savePricing(client: SupabaseClient, catalog: PricingCatalo
     .eq('id', 1)
   throwIfError(customError, 'pricing_custom')
 
-  const { error: ocasioesError } = await client
-    .from('pricing_ocasioes_choices')
-    .update({
-      receive_prompt: catalog.ocasioesChoices.receivePrompt,
-      time_prompt: catalog.ocasioesChoices.timePrompt,
-      bruto_label: catalog.ocasioesChoices.bruto.label,
-      bruto_lead: catalog.ocasioesChoices.bruto.lead,
-      editado_label: catalog.ocasioesChoices.editado.label,
-      editado_lead: catalog.ocasioesChoices.editado.lead,
-      meia_label: catalog.ocasioesChoices.meia.label,
-      meia_lead: catalog.ocasioesChoices.meia.lead,
-      diaria_label: catalog.ocasioesChoices.diaria.label,
-      diaria_lead: catalog.ocasioesChoices.diaria.lead,
-    })
-    .eq('id', 1)
-  throwIfError(ocasioesError, 'pricing_ocasioes_choices')
 }
 
 async function replaceCollection(

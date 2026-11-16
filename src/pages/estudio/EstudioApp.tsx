@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { resolveEstudioPath } from '../../lib/router'
+import { estudioClienteSlug, resolveEstudioPath } from '../../lib/router'
 import { EstudioCatalogo } from './EstudioCatalogo'
+import { EstudioCliente } from './EstudioCliente'
+import { EstudioClientes } from './EstudioClientes'
 import { EstudioEquipe } from './EstudioEquipe'
 import { EstudioHistorias } from './EstudioHistorias'
 import { EstudioHome } from './EstudioHome'
@@ -13,12 +15,14 @@ import './estudio.css'
 
 export function EstudioApp() {
   const { isAdmin, loading, unavailable, signIn, signOut, resetPassword, user } = useAuth()
-  const [path, setPath] = useState(() => resolveEstudioPath(window.location.pathname))
+  const [pathname, setPathname] = useState(() => window.location.pathname)
+  const path = resolveEstudioPath(pathname)
+  const clienteSlug = estudioClienteSlug(pathname)
 
   useEffect(() => {
     document.title = 'Estúdio — Ana Julia'
     function sync() {
-      setPath(resolveEstudioPath(window.location.pathname))
+      setPathname(window.location.pathname)
     }
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
@@ -84,6 +88,8 @@ export function EstudioApp() {
         {path === 'historias' ? <EstudioHistorias /> : null}
         {path === 'materiais' ? <EstudioMateriais /> : null}
         {path === 'equipe' ? <EstudioEquipe /> : null}
+        {path === 'clientes' ? <EstudioClientes /> : null}
+        {path === 'cliente' && clienteSlug ? <EstudioCliente key={clienteSlug} slug={clienteSlug} /> : null}
         {path === 'inicio' ? <EstudioHome /> : null}
       </EstudioShell>
     </div>

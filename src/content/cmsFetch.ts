@@ -5,7 +5,6 @@ import type {
   PricingCatalog,
   PricingCustomRow,
   PricingLineRow,
-  PricingOcasioesRow,
   PricingTierRow,
   SiteContent,
   SiteSettingsRow,
@@ -35,7 +34,6 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
     piecesRes,
     rulesRes,
     customRes,
-    ocasioesRes,
   ] = await Promise.all([
     client.from('site_settings').select('*').eq('id', 1).maybeSingle(),
     client.from('stories').select('*').order('sort_order'),
@@ -46,7 +44,6 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
     client.from('pricing_pieces').select('*').order('sort_order'),
     client.from('pricing_rules').select('*').order('sort_order'),
     client.from('pricing_custom').select('*').eq('id', 1).maybeSingle(),
-    client.from('pricing_ocasioes_choices').select('*').eq('id', 1).maybeSingle(),
   ])
 
   throwIfError(settingsRes.error, 'site_settings')
@@ -58,7 +55,6 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
   throwIfError(piecesRes.error, 'pricing_pieces')
   throwIfError(rulesRes.error, 'pricing_rules')
   throwIfError(customRes.error, 'pricing_custom')
-  throwIfError(ocasioesRes.error, 'pricing_ocasioes_choices')
 
   const mediaById: Record<number, MediaAssetRow> = {}
   for (const row of (mediaRes.data ?? []) as MediaAssetRow[]) {
@@ -78,7 +74,6 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
       pieces: (piecesRes.data ?? []) as SortableRow[],
       rules: (rulesRes.data ?? []) as SortableRow[],
       custom: (customRes.data as PricingCustomRow | null) ?? null,
-      ocasioes: (ocasioesRes.data as PricingOcasioesRow | null) ?? null,
     }),
   }
 }

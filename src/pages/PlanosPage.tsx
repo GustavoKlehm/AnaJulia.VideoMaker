@@ -18,7 +18,7 @@ function startingAt(line: PricingLine): string {
 }
 
 function emptyState(): PlanosState {
-  return { view: 'guided', tipo: null, plano: null, entrega: null, tempo: null }
+  return { view: 'guided', tipo: null, plano: null }
 }
 
 export function PlanosPage() {
@@ -28,13 +28,7 @@ export function PlanosPage() {
   const activeLine = lines.find((line) => line.id === state.tipo)
 
   function selectTipo(tipo: LineId) {
-    setState({
-      view: 'guided',
-      tipo,
-      plano: null,
-      entrega: null,
-      tempo: null,
-    })
+    setState({ view: 'guided', tipo, plano: null })
   }
 
   return (
@@ -70,6 +64,7 @@ export function PlanosPage() {
                   <span className="seek__body">
                     <span className="seek__name">{line.title}</span>
                     <span className="seek__promise">{line.promise}</span>
+                    {line.hint ? <span className="seek__hint">{line.hint}</span> : null}
                   </span>
                   <ArrowRight
                     className="seek__go"
@@ -103,7 +98,6 @@ export function PlanosPage() {
                 line={activeLine}
                 state={state}
                 onChange={setState}
-                choices={pricing.ocasioesChoices}
                 planMessage={site.messages.plan}
                 phone={site.whatsappPhone}
               />
@@ -123,6 +117,7 @@ export function PlanosPage() {
                       <p className="line__from">{startingAt(line)}</p>
                     ) : null}
                     <p className="line__lead">{line.lead}</p>
+                    {line.hint ? <p className="line__hint">{line.hint}</p> : null}
                   </Reveal>
                   <div className="tiers">
                     {line.tiers.map((tier) => (

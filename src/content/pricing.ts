@@ -16,6 +16,7 @@ export type PricingLine = {
   id: string
   title: string
   promise: string
+  hint: string
   lead: string
   prompt: string
   display: 'exact' | 'from'
@@ -47,6 +48,7 @@ export const lines: readonly PricingLine[] = [
     id: 'momentos',
     title: 'Momentos',
     promise: 'Pequenas histórias que merecem ser lembradas.',
+    hint: 'Ex.: chá revelação, casamentos, despedidas de solteira, aniversários.',
     lead: 'Ensaios, pré-wedding, família, gestante, aniversário. Para guardar um capítulo da sua própria história.',
     prompt: 'Como você quer guardar esse momento?',
     display: 'exact',
@@ -88,60 +90,10 @@ export const lines: readonly PricingLine[] = [
     ],
   },
   {
-    id: 'ocasioes',
-    title: 'Ocasiões',
-    promise: 'Dias que merecem ser vividos e registrados por inteiro.',
-    lead: '15 anos, batizado, formatura, casamento civil, confraternização. Um dia inteiro ou meio período.',
-    prompt: 'Como você quer receber esse registro?',
-    display: 'from',
-    unit: 'project',
-    tiers: [
-      {
-        id: 'captacao-meia',
-        name: 'Só captação — meia diária',
-        need: 'O material registrado, organizado, sem edição.',
-        capture: 'Até 4h de cobertura',
-        delivery: ['Material bruto organizado, entregue por link'],
-        hours: 6.5,
-        price: 450,
-        featured: false,
-      },
-      {
-        id: 'captacao-diaria',
-        name: 'Só captação — diária',
-        need: 'O material registrado, organizado, sem edição.',
-        capture: 'Até 8h de cobertura',
-        delivery: ['Material bruto organizado, entregue por link'],
-        hours: 11,
-        price: 790,
-        featured: false,
-      },
-      {
-        id: 'meia-diaria',
-        name: 'Meia diária',
-        need: 'Conteúdo tratado e pronto para assistir e compartilhar.',
-        capture: 'Até 4h de cobertura',
-        delivery: ['1 filme de até 3 min', '1 corte vertical'],
-        hours: 13,
-        price: 890,
-        featured: false,
-      },
-      {
-        id: 'diaria',
-        name: 'Diária',
-        need: 'Conteúdo tratado e pronto para assistir e compartilhar.',
-        capture: 'Até 8h de cobertura',
-        delivery: ['1 filme de até 5 min', '1 teaser', '2 cortes verticais'],
-        hours: 24,
-        price: 1590,
-        featured: false,
-      },
-    ],
-  },
-  {
     id: 'marcas',
     title: 'Marcas',
     promise: 'Histórias que sua marca quer contar.',
+    hint: 'Para fortalecer a presença digital da sua empresa.',
     lead: 'Conteúdo recorrente para comércio e serviço. Eu vou até você filmar — não é edição de material que você manda.',
     prompt: 'Qual ritmo combina com sua marca?',
     display: 'from',
@@ -210,7 +162,7 @@ export const pieces: readonly Piece[] = [
     id: 'filme',
     name: 'Filme',
     purpose: 'Para guardar',
-    body: 'A peça principal, de 1 a 5 minutos conforme o plano. Feita para ser assistida inteira, sentada. Tem narrativa: abre situando o lugar, desenvolve mostrando as pessoas, fecha num momento de emoção. Cortes longos, áudio ambiente presente, trilha por baixo sem dominar.',
+    body: 'A peça principal, de 1 a 4 minutos conforme o plano. Feita para ser assistida inteira, sentada. Tem narrativa: abre situando o lugar, desenvolve mostrando as pessoas, fecha num momento de emoção. Cortes longos, áudio ambiente presente, trilha por baixo sem dominar.',
   },
   {
     id: 'teaser',
@@ -224,12 +176,6 @@ export const pieces: readonly Piece[] = [
     purpose: 'Para não sumir do feed',
     body: 'De 30 a 45 segundos, um momento isolado cada, sempre vertical. Servem para alimentar o feed nas semanas seguintes sem repetir a mesma peça. Um corte, um assunto, legenda quando tem fala.',
   },
-  {
-    id: 'bruto',
-    name: 'Material bruto',
-    purpose: 'Para quem só quer a captação',
-    body: 'O que sai do cartão, sem edição, organizado em pastas e com os takes inutilizáveis descartados. Disponível apenas na linha Ocasiões.',
-  },
 ]
 
 export const rules: readonly Rule[] = [
@@ -241,12 +187,12 @@ export const rules: readonly Rule[] = [
   {
     id: 'revisoes',
     title: 'Revisões',
-    body: 'Duas rodadas inclusas nas linhas Momentos e Ocasiões, uma rodada por peça na linha Marcas. Você tem 7 dias após receber a prévia para pedir ajustes. Trocar música, ajustar corte e mudar cor é revisão; incluir cena que não foi filmada é trabalho novo.',
+    body: 'Duas rodadas inclusas na linha Momentos, uma rodada por peça na linha Marcas. Você tem 7 dias após receber a prévia para pedir ajustes. Trocar música, ajustar corte e mudar cor é revisão; incluir cena que não foi filmada é trabalho novo.',
   },
   {
     id: 'prazos',
     title: 'Prazos de entrega',
-    body: 'Contados a partir da captação: Retrato em 7 dias úteis, História em 10, Capítulo em 15, meia diária em 20 e diária em 25.',
+    body: 'Contados a partir da captação: Retrato em 7 dias úteis, História em 10, Capítulo em 15.',
   },
   {
     id: 'deslocamento',
@@ -274,23 +220,6 @@ export const rules: readonly Rule[] = [
     body: 'A proposta de preços enviada tem validade de 15 dias a partir do envio.',
   },
 ]
-
-export const ocasioesChoices = {
-  receivePrompt: 'Como você quer receber esse registro?',
-  timePrompt: 'Quanto tempo você precisa?',
-  bruto: {
-    id: 'bruto' as const,
-    label: 'Só captação',
-    lead: 'Você recebe todo o material registrado.',
-  },
-  editado: {
-    id: 'editado' as const,
-    label: 'Captação + edição',
-    lead: 'Você recebe os conteúdos tratados e prontos para assistir e compartilhar.',
-  },
-  meia: { id: 'meia' as const, label: 'Meia diária', lead: 'Até 4 horas.' },
-  diaria: { id: 'diaria' as const, label: 'Diária', lead: 'Até 8 horas.' },
-}
 
 export function formatBRL(value: number): string {
   return value.toLocaleString('pt-BR', {

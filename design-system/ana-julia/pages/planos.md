@@ -23,15 +23,15 @@ ser compartilhável.
 ## Layout
 
 1. **Intro** (`#planos-conteudo`) — pergunta serif: "O que você quer guardar?"
-2. **Seletor persistente** — Momentos · Ocasiões · Marcas, com a promessa de
-   cada linha. Abaixo, o conteúdo muda. Alternativa: "Ver todos os planos".
+2. **Seletor persistente** — Momentos · Marcas, com a promessa de cada linha
+   e uma frase de apoio (exemplos ou público) em itálico. Abaixo, o conteúdo muda. Alternativa: "Ver todos os planos".
 3. **Guia** — segunda pergunta na linguagem da necessidade (guardar, receber,
    ritmo). O plano escolhido se revela abaixo, com preço, o que está incluso
-   e o CTA. Ocasiões tem dois recortes: como recebe, depois quanto tempo.
-4. **Vista completa** — as três linhas em cards, para quem pediu "ver todos".
+   e o CTA.
+4. **Vista completa** — as duas linhas em cards, para quem pediu "ver todos".
 3. **Personalizado** — bloco de texto centralizado, sem preço, com CTA.
 4. **Adicionais** — lista de duas colunas, rótulo à esquerda e valor à direita.
-5. **Peças** — dicionário de filme, teaser, cortes e bruto.
+5. **Peças** — dicionário de filme, teaser e cortes.
 6. **Regras** — condições comerciais em blocos curtos.
 7. **CTA final** — WhatsApp e Direct, igual ao contato da home.
 

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  ocasioesTierId,
   parsePlanosSearch,
-  planosHref,
-  planosStateFromRecommendation,
   serializePlanosSearch,
 } from './planosState'
 
@@ -13,8 +10,6 @@ describe('parsePlanosSearch', () => {
       view: 'guided',
       tipo: null,
       plano: null,
-      entrega: null,
-      tempo: null,
     })
   })
 
@@ -26,11 +21,11 @@ describe('parsePlanosSearch', () => {
     })
   })
 
-  it('lê Ocasiões com entrega e tempo', () => {
-    expect(parsePlanosSearch('?tipo=ocasioes&entrega=bruto&tempo=meia')).toMatchObject({
-      tipo: 'ocasioes',
-      entrega: 'bruto',
-      tempo: 'meia',
+  it('ignora a antiga linha Ocasiões', () => {
+    expect(parsePlanosSearch('?tipo=ocasioes&entrega=bruto&tempo=meia')).toEqual({
+      view: 'guided',
+      tipo: null,
+      plano: null,
     })
   })
 
@@ -39,8 +34,6 @@ describe('parsePlanosSearch', () => {
       view: 'guided',
       tipo: null,
       plano: null,
-      entrega: null,
-      tempo: null,
     })
   })
 
@@ -60,8 +53,6 @@ describe('serializePlanosSearch', () => {
         view: 'guided',
         tipo: 'momentos',
         plano: 'historia',
-        entrega: null,
-        tempo: null,
       }),
     ).toBe('?tipo=momentos&plano=historia')
   })
@@ -72,8 +63,6 @@ describe('serializePlanosSearch', () => {
         view: 'guided',
         tipo: 'marcas',
         plano: null,
-        entrega: null,
-        tempo: null,
       }),
     ).toBe('?tipo=marcas')
   })
@@ -84,57 +73,8 @@ describe('serializePlanosSearch', () => {
         view: 'all',
         tipo: null,
         plano: null,
-        entrega: null,
-        tempo: null,
       }),
     ).toBe('?ver=todos')
   })
 })
 
-describe('planosStateFromRecommendation', () => {
-  it('abre Momentos no plano indicado', () => {
-    expect(planosStateFromRecommendation({ tipo: 'momentos', plano: 'historia' })).toEqual({
-      view: 'guided',
-      tipo: 'momentos',
-      plano: 'historia',
-      entrega: null,
-      tempo: null,
-    })
-    expect(planosHref(planosStateFromRecommendation({ tipo: 'momentos', plano: 'historia' })!)).toBe(
-      '/planos?tipo=momentos&plano=historia',
-    )
-  })
-
-  it('abre Ocasiões pela entrega e pelo tempo', () => {
-    expect(planosStateFromRecommendation({ tipo: 'ocasioes', plano: 'diaria' })).toEqual({
-      view: 'guided',
-      tipo: 'ocasioes',
-      plano: null,
-      entrega: 'editado',
-      tempo: 'diaria',
-    })
-    expect(planosHref(planosStateFromRecommendation({ tipo: 'ocasioes', plano: 'diaria' })!)).toBe(
-      '/planos?tipo=ocasioes&entrega=editado&tempo=diaria',
-    )
-  })
-
-  it('rejeita combinação que o catálogo não tem', () => {
-    expect(planosStateFromRecommendation({ tipo: 'marcas', plano: 'historia' })).toBeNull()
-    expect(planosStateFromRecommendation({ tipo: 'momentos', plano: 'desconhecido' })).toBeNull()
-  })
-})
-
-describe('ocasioesTierId', () => {
-  it('liga só captação + meia diária', () => {
-    expect(ocasioesTierId('bruto', 'meia')).toBe('captacao-meia')
-  })
-
-  it('liga captação e edição + diária', () => {
-    expect(ocasioesTierId('editado', 'diaria')).toBe('diaria')
-  })
-
-  it('espera as duas escolhas', () => {
-    expect(ocasioesTierId('bruto', null)).toBeNull()
-    expect(ocasioesTierId(null, 'meia')).toBeNull()
-  })
-})

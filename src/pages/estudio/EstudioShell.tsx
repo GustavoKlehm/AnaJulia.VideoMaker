@@ -5,6 +5,7 @@ import './estudio.css'
 
 const LINKS: { href: string; label: string; path: EstudioPath }[] = [
   { href: '/estudio', label: 'Início', path: 'inicio' },
+  { href: '/estudio/clientes', label: 'Clientes', path: 'clientes' },
   { href: '/estudio/catalogo', label: 'Catálogo', path: 'catalogo' },
   { href: '/estudio/paginas/home', label: 'Home', path: 'pagina-home' },
   { href: '/estudio/historias', label: 'Histórias', path: 'historias' },
@@ -31,7 +32,7 @@ export function EstudioShell({ path, onSignOut, children }: EstudioShellProps) {
         {LINKS.map((item) => (
           <RouteLink
             key={item.href}
-            className={path === item.path ? 'is-on' : undefined}
+            className={path === item.path || (item.path === 'clientes' && path === 'cliente') ? 'is-on' : undefined}
             to={item.href}
           >
             {item.label}

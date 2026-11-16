@@ -59,8 +59,8 @@ describe('tabela de preços', () => {
     }
   })
 
-  it('existem as três linhas na ordem do catálogo', () => {
-    expect(lines.map((line) => line.id)).toEqual(['momentos', 'ocasioes', 'marcas'])
+  it('existem as duas linhas na ordem do catálogo', () => {
+    expect(lines.map((line) => line.id)).toEqual(['momentos', 'marcas'])
   })
 
   it('cada linha tem uma promessa e cada plano uma necessidade', () => {

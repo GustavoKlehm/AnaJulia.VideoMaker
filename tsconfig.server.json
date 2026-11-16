@@ -14,5 +14,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["server", "api", "src/content/pricing.ts"]
+  "include": ["server", "api", "src/content/pricing.ts", "src/shared"]
 }

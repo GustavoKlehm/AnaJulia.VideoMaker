@@ -298,3 +298,154 @@
     margin: 0 0 var(--space-xl);
   }
 }
+
+/* Clientes (área do cliente) ------------------------------------------------ */
+
+.estudio-grid--2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-md);
+}
+
+.estudio-color {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.estudio-color input[type='color'] {
+  width: 48px;
+  height: 44px;
+  padding: 2px;
+  flex: none;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  cursor: pointer;
+}
+
+.estudio-color input[type='text'] {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, monospace;
+}
+
+.estudio-theme-preview {
+  display: grid;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.estudio-theme-preview__top {
+  padding: 10px 14px;
+  font-family: var(--font-serif);
+}
+
+.estudio-theme-preview__hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 18px 14px;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+}
+
+.estudio-theme-preview__button {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.estudio-theme-preview .estudio-help {
+  padding: 10px 14px;
+}
+
+.estudio-client-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.estudio-client-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: inherit;
+  text-decoration: none;
+}
+
+.estudio-client-row:hover {
+  border-color: var(--color-foreground);
+}
+
+.estudio-client-row > .estudio-help {
+  grid-column: 2;
+}
+
+.estudio-client-row:not(:has(.estudio-swatches)) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.estudio-client-row:not(:has(.estudio-swatches)) > .estudio-help {
+  grid-column: 1;
+}
+
+.estudio-client-row__name {
+  margin: 0;
+  font-weight: 500;
+}
+
+.estudio-swatches {
+  display: inline-flex;
+  grid-row: span 2;
+}
+
+.estudio-swatches i {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid var(--color-card);
+}
+
+.estudio-swatches i + i {
+  margin-left: -6px;
+}
+
+.estudio-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+}
+
+.estudio-contact p {
+  margin: 0;
+}
+
+.estudio-access {
+  border: 2px solid var(--color-foreground);
+}
+
+.estudio-access__pin {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.estudio-access__pin b {
+  font-family: ui-monospace, monospace;
+  font-size: 1.6rem;
+  letter-spacing: 0.2em;
+}

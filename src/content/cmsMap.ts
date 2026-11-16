@@ -4,7 +4,6 @@ import type {
   PricingCatalog,
   PricingCustomRow,
   PricingLineRow,
-  PricingOcasioesRow,
   PricingTierRow,
   SiteContent,
   SiteSettingsRow,
@@ -106,7 +105,6 @@ export function mapPricing(input: {
   pieces: SortableRow[]
   rules: SortableRow[]
   custom: PricingCustomRow | null
-  ocasioes: PricingOcasioesRow | null
 }): PricingCatalog {
   if (input.lines.length === 0) {
     return structuredClone(fallbackPricing)
@@ -124,6 +122,7 @@ export function mapPricing(input: {
       id: line.id,
       title: line.title,
       promise: line.promise,
+      hint: line.hint ?? '',
       lead: line.lead,
       prompt: line.prompt,
       display: line.display === 'from' ? 'from' : 'exact',
@@ -162,31 +161,5 @@ export function mapPricing(input: {
           floor: Number(input.custom.floor),
         }
       : { ...fallbackPricing.custom },
-    ocasioesChoices: input.ocasioes
-      ? {
-          receivePrompt: input.ocasioes.receive_prompt,
-          timePrompt: input.ocasioes.time_prompt,
-          bruto: {
-            id: 'bruto',
-            label: input.ocasioes.bruto_label,
-            lead: input.ocasioes.bruto_lead,
-          },
-          editado: {
-            id: 'editado',
-            label: input.ocasioes.editado_label,
-            lead: input.ocasioes.editado_lead,
-          },
-          meia: {
-            id: 'meia',
-            label: input.ocasioes.meia_label,
-            lead: input.ocasioes.meia_lead,
-          },
-          diaria: {
-            id: 'diaria',
-            label: input.ocasioes.diaria_label,
-            lead: input.ocasioes.diaria_lead,
-          },
-        }
-      : structuredClone(fallbackPricing.ocasioesChoices),
   }
 }

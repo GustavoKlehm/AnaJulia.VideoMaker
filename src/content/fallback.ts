@@ -2,7 +2,6 @@ import {
   addOns,
   custom,
   lines,
-  ocasioesChoices,
   pieces,
   rules,
 } from './pricing'
@@ -67,12 +66,4 @@ export const fallbackPricing: PricingCatalog = {
   pieces: pieces.map((item) => ({ ...item })),
   rules: rules.map((item) => ({ ...item })),
   custom: { ...custom },
-  ocasioesChoices: {
-    receivePrompt: ocasioesChoices.receivePrompt,
-    timePrompt: ocasioesChoices.timePrompt,
-    bruto: { ...ocasioesChoices.bruto },
-    editado: { ...ocasioesChoices.editado },
-    meia: { ...ocasioesChoices.meia },
-    diaria: { ...ocasioesChoices.diaria },
-  },
 }
