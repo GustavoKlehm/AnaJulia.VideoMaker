@@ -4,6 +4,7 @@ import type { NavItem } from '../content/site'
 export type Route = 'home' | 'planos' | 'estudio' | 'cliente'
 export type EstudioPath =
   | 'inicio'
+  | 'agenda'
   | 'catalogo'
   | 'pagina-home'
   | 'historias'
@@ -42,6 +43,9 @@ export function estudioClienteSlug(pathname: string): string | null {
 
 export function resolveEstudioPath(pathname: string): EstudioPath {
   const normalized = pathname.replace(/\/+$/, '') || '/'
+  if (normalized === '/estudio/agenda') {
+    return 'agenda'
+  }
   if (normalized === '/estudio/catalogo') {
     return 'catalogo'
   }

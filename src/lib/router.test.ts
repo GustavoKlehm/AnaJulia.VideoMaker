@@ -32,6 +32,7 @@ describe('resolveRoute', () => {
 describe('resolveEstudioPath', () => {
   it('mapeia as seções do estúdio', () => {
     expect(resolveEstudioPath('/estudio')).toBe('inicio')
+    expect(resolveEstudioPath('/estudio/agenda')).toBe('agenda')
     expect(resolveEstudioPath('/estudio/catalogo')).toBe('catalogo')
     expect(resolveEstudioPath('/estudio/paginas/home')).toBe('pagina-home')
     expect(resolveEstudioPath('/estudio/historias')).toBe('historias')

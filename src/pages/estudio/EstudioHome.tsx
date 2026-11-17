@@ -9,6 +9,9 @@ export function EstudioHome() {
         <h1>O que você quer ajustar?</h1>
       </div>
       <nav className="estudio-home-links" aria-label="Atalhos">
+        <RouteLink to="/estudio/agenda">
+          Agenda <span aria-hidden="true">→</span>
+        </RouteLink>
         <RouteLink to="/estudio/clientes">
           Clientes <span aria-hidden="true">→</span>
         </RouteLink>

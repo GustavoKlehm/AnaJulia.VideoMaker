@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { estudioClienteSlug, resolveEstudioPath } from '../../lib/router'
+import { EstudioAgenda } from './EstudioAgenda'
 import { EstudioCatalogo } from './EstudioCatalogo'
 import { EstudioCliente } from './EstudioCliente'
 import { EstudioClientes } from './EstudioClientes'
@@ -83,6 +84,7 @@ export function EstudioApp() {
   return (
     <div className="estudio">
       <EstudioShell path={path} onSignOut={() => void signOut()}>
+        {path === 'agenda' ? <EstudioAgenda /> : null}
         {path === 'catalogo' ? <EstudioCatalogo /> : null}
         {path === 'pagina-home' ? <EstudioPaginaHome /> : null}
         {path === 'historias' ? <EstudioHistorias /> : null}

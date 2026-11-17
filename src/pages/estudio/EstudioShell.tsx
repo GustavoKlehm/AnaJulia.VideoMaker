@@ -5,6 +5,7 @@ import './estudio.css'
 
 const LINKS: { href: string; label: string; path: EstudioPath }[] = [
   { href: '/estudio', label: 'Início', path: 'inicio' },
+  { href: '/estudio/agenda', label: 'Agenda', path: 'agenda' },
   { href: '/estudio/clientes', label: 'Clientes', path: 'clientes' },
   { href: '/estudio/catalogo', label: 'Catálogo', path: 'catalogo' },
   { href: '/estudio/paginas/home', label: 'Home', path: 'pagina-home' },
