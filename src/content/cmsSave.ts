@@ -95,38 +95,59 @@ export async function savePricing(client: SupabaseClient, catalog: PricingCatalo
   const { error: lineError } = await client.from('pricing_lines').upsert(lineRows)
   throwIfError(lineError, 'pricing_lines')
 
-  const { data: existingTiers, error: existingError } = await client
-    .from('pricing_tiers')
-    .select('id')
-  throwIfError(existingError, 'pricing_tiers.select')
-
-  const keepIds = new Set(catalog.lines.flatMap((line) => line.tiers.map((tier) => tier.id)))
-  const removeIds = (existingTiers ?? [])
-    .map((row) => row.id as string)
-    .filter((id) => !keepIds.has(id))
-
-  if (removeIds.length > 0) {
-    const { error } = await client.from('pricing_tiers').delete().in('id', removeIds)
-    throwIfError(error, 'pricing_tiers.delete')
-  }
-
-  const tierRows = catalog.lines.flatMap((line) =>
-    line.tiers.map((tier, index) => ({
-      id: tier.id,
+  const categoryRows = catalog.lines.flatMap((line) =>
+    line.categories.map((category, index) => ({
+      id: category.id,
       line_id: line.id,
-      name: tier.name,
-      need: tier.need,
-      capture: tier.capture,
-      delivery: [...tier.delivery],
-      hours: tier.hours,
-      price: tier.price,
-      featured: tier.featured,
+      title: category.title,
+      promise: category.promise,
+      hint: category.hint,
+      combo_mode: category.comboMode,
+      combo_discount: category.comboDiscount,
+      combo_note: category.comboNote,
       sort_order: index,
     })),
   )
 
-  const { error: tierError } = await client.from('pricing_tiers').upsert(tierRows)
-  throwIfError(tierError, 'pricing_tiers')
+  const serviceRows = catalog.lines.flatMap((line) =>
+    line.categories.flatMap((category) =>
+      category.services.map((service, index) => ({
+        id: service.id,
+        category_id: category.id,
+        title: service.title,
+        lead: service.lead,
+        sort_order: index,
+      })),
+    ),
+  )
+
+  const tierRows = catalog.lines.flatMap((line) =>
+    line.categories.flatMap((category) =>
+      category.services.flatMap((service) =>
+        service.tiers.map((tier, index) => ({
+          id: tier.id,
+          line_id: line.id,
+          service_id: service.id,
+          name: tier.name,
+          need: tier.need,
+          capture: tier.capture,
+          delivery: [...tier.delivery],
+          hours: tier.hours,
+          price: tier.price,
+          featured: tier.featured,
+          sort_order: index,
+        })),
+      ),
+    ),
+  )
+
+  // Pais antes dos filhos; o que saiu do catálogo é apagado do mais fundo para o mais raso.
+  await upsertRows(client, 'pricing_categories', categoryRows)
+  await upsertRows(client, 'pricing_services', serviceRows)
+  await upsertRows(client, 'pricing_tiers', tierRows)
+  await deleteMissing(client, 'pricing_tiers', tierRows)
+  await deleteMissing(client, 'pricing_services', serviceRows)
+  await deleteMissing(client, 'pricing_categories', categoryRows)
 
   await replaceCollection(client, 'pricing_addons', catalog.addOns.map((item, index) => ({
     id: item.id,
@@ -160,6 +181,36 @@ export async function savePricing(client: SupabaseClient, catalog: PricingCatalo
     .eq('id', 1)
   throwIfError(customError, 'pricing_custom')
 
+}
+
+type CatalogTable = 'pricing_categories' | 'pricing_services' | 'pricing_tiers'
+
+async function upsertRows(
+  client: SupabaseClient,
+  table: CatalogTable,
+  rows: { id: string }[],
+): Promise<void> {
+  if (rows.length === 0) {
+    return
+  }
+  const { error } = await client.from(table).upsert(rows)
+  throwIfError(error, table)
+}
+
+async function deleteMissing(
+  client: SupabaseClient,
+  table: CatalogTable,
+  rows: { id: string }[],
+): Promise<void> {
+  const { data, error } = await client.from(table).select('id')
+  throwIfError(error, `${table}.select`)
+
+  const keep = new Set(rows.map((row) => row.id))
+  const remove = (data ?? []).map((row) => row.id as string).filter((id) => !keep.has(id))
+  if (remove.length > 0) {
+    const { error: deleteError } = await client.from(table).delete().in('id', remove)
+    throwIfError(deleteError, `${table}.delete`)
+  }
 }
 
 async function replaceCollection(

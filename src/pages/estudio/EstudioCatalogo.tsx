@@ -1,6 +1,7 @@
 import { useState, type Dispatch, type SetStateAction } from 'react'
 import { useCms } from '../../content/cmsContext'
 import { savePricing, slugify } from '../../content/cmsSave'
+import type { Category, ComboMode, Service, Tier } from '../../content/pricing'
 import type { PricingCatalog } from '../../content/types'
 import { getSupabase } from '../../lib/supabase'
 import './estudio.css'
@@ -114,134 +115,34 @@ export function EstudioCatalogo() {
             </label>
           </div>
 
-          {line.tiers.map((tier, tierIndex) => (
-            <article className="estudio-card" key={tier.id}>
-              <h3>{tier.name}</h3>
-              <label className="estudio-field">
-                <span>Nome</span>
-                <input
-                  value={tier.name}
-                  onChange={(event) =>
-                    updateTier(setDraft, lineIndex, tierIndex, { name: event.target.value })
-                  }
-                />
-              </label>
-              <label className="estudio-field">
-                <span>Para quem é</span>
-                <input
-                  value={tier.need}
-                  onChange={(event) =>
-                    updateTier(setDraft, lineIndex, tierIndex, { need: event.target.value })
-                  }
-                />
-              </label>
-              <label className="estudio-field">
-                <span>Captação</span>
-                <input
-                  value={tier.capture}
-                  onChange={(event) =>
-                    updateTier(setDraft, lineIndex, tierIndex, { capture: event.target.value })
-                  }
-                />
-              </label>
-              <label className="estudio-field">
-                <span>Entregas (uma por linha)</span>
-                <textarea
-                  value={tier.delivery.join('\n')}
-                  onChange={(event) =>
-                    updateTier(setDraft, lineIndex, tierIndex, {
-                      delivery: event.target.value.split('\n').map((item) => item),
-                    })
-                  }
-                />
-              </label>
-              <div className="estudio-inline">
-                <label className="estudio-field">
-                  <span>Preço (R$)</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={10}
-                    value={tier.price}
-                    onChange={(event) =>
-                      updateTier(setDraft, lineIndex, tierIndex, {
-                        price: Number(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-                <label className="estudio-field">
-                  <span>Horas internas</span>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.5}
-                    value={tier.hours}
-                    onChange={(event) =>
-                      updateTier(setDraft, lineIndex, tierIndex, {
-                        hours: Number(event.target.value),
-                      })
-                    }
-                  />
-                </label>
-              </div>
-              <label className="estudio-check">
-                <input
-                  type="checkbox"
-                  checked={tier.featured}
-                  onChange={(event) =>
-                    setDraft((current) => {
-                      const next = structuredClone(current)
-                      next.lines[lineIndex].tiers = next.lines[lineIndex].tiers.map((item, index) => ({
-                        ...item,
-                        featured: index === tierIndex ? event.target.checked : false,
-                      }))
-                      return next
-                    })
-                  }
-                />
-                Mais escolhido
-              </label>
-              <button
-                className="estudio-button-ghost"
-                type="button"
-                onClick={() =>
-                  setDraft((current) => {
-                    const next = structuredClone(current)
-                    next.lines[lineIndex].tiers = next.lines[lineIndex].tiers.filter(
-                      (_, index) => index !== tierIndex,
-                    )
-                    return next
-                  })
-                }
-              >
-                Remover plano
-              </button>
-            </article>
+          {line.categories.map((category, categoryIndex) => (
+            <CategoryEditor
+              key={category.id}
+              category={category}
+              setDraft={setDraft}
+              path={[lineIndex, categoryIndex]}
+            />
           ))}
 
           <button
             className="estudio-button-ghost"
             type="button"
             onClick={() =>
-              setDraft((current) => {
-                const next = structuredClone(current)
-                const name = 'Novo plano'
-                next.lines[lineIndex].tiers.push({
-                  id: uniqueId(next, slugify(name) || 'plano'),
-                  name,
-                  need: '',
-                  capture: '',
-                  delivery: [''],
-                  hours: 1,
-                  price: 350,
-                  featured: false,
+              edit(setDraft, (next) => {
+                next.lines[lineIndex].categories.push({
+                  id: uniqueId(allCategoryIds(next), 'categoria'),
+                  title: 'Nova categoria',
+                  promise: '',
+                  hint: '',
+                  comboMode: 'none',
+                  comboDiscount: 0,
+                  comboNote: '',
+                  services: [],
                 })
-                return next
               })
             }
           >
-            Adicionar plano
+            Adicionar categoria
           </button>
         </section>
       ))}
@@ -354,24 +255,36 @@ function updateLine(
   })
 }
 
-function updateTier(
-  setDraft: Dispatch<SetStateAction<PricingCatalog>>,
-  lineIndex: number,
-  tierIndex: number,
-  patch: Partial<PricingCatalog['lines'][number]['tiers'][number]>,
-) {
+type Setter = Dispatch<SetStateAction<PricingCatalog>>
+
+function edit(setDraft: Setter, change: (next: PricingCatalog) => void) {
   setDraft((current) => {
     const next = structuredClone(current)
-    next.lines[lineIndex].tiers[tierIndex] = {
-      ...next.lines[lineIndex].tiers[tierIndex],
-      ...patch,
-    }
+    change(next)
     return next
   })
 }
 
-function uniqueId(catalog: PricingCatalog, base: string): string {
-  const used = new Set(catalog.lines.flatMap((line) => line.tiers.map((tier) => tier.id)))
+function allCategoryIds(catalog: PricingCatalog): string[] {
+  return catalog.lines.flatMap((line) => line.categories.map((category) => category.id))
+}
+
+function allServiceIds(catalog: PricingCatalog): string[] {
+  return catalog.lines.flatMap((line) =>
+    line.categories.flatMap((category) => category.services.map((service) => service.id)),
+  )
+}
+
+function allTierIds(catalog: PricingCatalog): string[] {
+  return catalog.lines.flatMap((line) =>
+    line.categories.flatMap((category) =>
+      category.services.flatMap((service) => service.tiers.map((tier) => tier.id)),
+    ),
+  )
+}
+
+function uniqueId(usedIds: string[], base: string): string {
+  const used = new Set(usedIds)
   if (!used.has(base)) {
     return base
   }
@@ -380,6 +293,303 @@ function uniqueId(catalog: PricingCatalog, base: string): string {
     index += 1
   }
   return `${base}-${index}`
+}
+
+const COMBO_OPTIONS: { value: ComboMode; label: string }[] = [
+  { value: 'none', label: 'Sem "Os dois"' },
+  { value: 'paired', label: 'Mesmo nível nos dois (ex.: 5h + 5h)' },
+  { value: 'free', label: 'Cliente escolhe um de cada' },
+]
+
+function CategoryEditor({
+  category,
+  setDraft,
+  path,
+}: {
+  category: Category
+  setDraft: Setter
+  path: [number, number]
+}) {
+  const [lineIndex, categoryIndex] = path
+
+  function update(patch: Partial<Category>) {
+    edit(setDraft, (next) => {
+      const list = next.lines[lineIndex].categories
+      list[categoryIndex] = { ...list[categoryIndex], ...patch }
+    })
+  }
+
+  return (
+    <section className="estudio-card">
+      <h3>{category.title}</h3>
+      <label className="estudio-field">
+        <span>Título da categoria</span>
+        <input value={category.title} onChange={(event) => update({ title: event.target.value })} />
+      </label>
+      <label className="estudio-field">
+        <span>Promessa</span>
+        <input value={category.promise} onChange={(event) => update({ promise: event.target.value })} />
+      </label>
+      <label className="estudio-field">
+        <span>Exemplos (abaixo da promessa)</span>
+        <input value={category.hint} onChange={(event) => update({ hint: event.target.value })} />
+      </label>
+      <div className="estudio-inline">
+        <label className="estudio-field">
+          <span>Aba "Os dois"</span>
+          <select
+            value={category.comboMode}
+            onChange={(event) => update({ comboMode: event.target.value as ComboMode })}
+          >
+            {COMBO_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="estudio-field">
+          <span>Desconto dos dois (%)</span>
+          <input
+            type="number"
+            min={0}
+            max={50}
+            step={1}
+            value={Math.round(category.comboDiscount * 100)}
+            onChange={(event) => update({ comboDiscount: Number(event.target.value) / 100 })}
+          />
+        </label>
+      </div>
+      {category.comboMode !== 'none' && category.services.length !== 2 ? (
+        <p className="estudio-help">
+          A aba "Os dois" só aparece quando a categoria tem exatamente dois serviços.
+        </p>
+      ) : null}
+      <label className="estudio-field">
+        <span>Texto da aba "Os dois"</span>
+        <textarea
+          value={category.comboNote}
+          onChange={(event) => update({ comboNote: event.target.value })}
+        />
+      </label>
+
+      {category.services.map((service, serviceIndex) => (
+        <ServiceEditor
+          key={service.id}
+          service={service}
+          setDraft={setDraft}
+          path={[lineIndex, categoryIndex, serviceIndex]}
+        />
+      ))}
+
+      <button
+        className="estudio-button-ghost"
+        type="button"
+        onClick={() =>
+          edit(setDraft, (next) => {
+            next.lines[lineIndex].categories[categoryIndex].services.push({
+              id: uniqueId(allServiceIds(next), `${category.id}-servico`),
+              title: 'Novo serviço',
+              lead: '',
+              tiers: [],
+            })
+          })
+        }
+      >
+        Adicionar serviço
+      </button>
+      <button
+        className="estudio-button-ghost"
+        type="button"
+        onClick={() =>
+          edit(setDraft, (next) => {
+            next.lines[lineIndex].categories.splice(categoryIndex, 1)
+          })
+        }
+      >
+        Remover categoria
+      </button>
+    </section>
+  )
+}
+
+function ServiceEditor({
+  service,
+  setDraft,
+  path,
+}: {
+  service: Service
+  setDraft: Setter
+  path: [number, number, number]
+}) {
+  const [lineIndex, categoryIndex, serviceIndex] = path
+
+  function change(apply: (target: Service) => void) {
+    edit(setDraft, (next) => {
+      apply(next.lines[lineIndex].categories[categoryIndex].services[serviceIndex])
+    })
+  }
+
+  return (
+    <article className="estudio-card">
+      <h4>{service.title}</h4>
+      <label className="estudio-field">
+        <span>Nome do serviço (aba)</span>
+        <input
+          value={service.title}
+          onChange={(event) => {
+            const value = event.target.value
+            change((target) => {
+              target.title = value
+            })
+          }}
+        />
+      </label>
+      <label className="estudio-field">
+        <span>Texto do serviço</span>
+        <textarea
+          value={service.lead}
+          onChange={(event) => {
+            const value = event.target.value
+            change((target) => {
+              target.lead = value
+            })
+          }}
+        />
+      </label>
+
+      {service.tiers.map((tier, tierIndex) => (
+        <TierEditor
+          key={tier.id}
+          tier={tier}
+          onChange={(patch) =>
+            change((target) => {
+              target.tiers[tierIndex] = { ...target.tiers[tierIndex], ...patch }
+            })
+          }
+          onFeatured={(checked) =>
+            change((target) => {
+              target.tiers = target.tiers.map((item, index) => ({
+                ...item,
+                featured: index === tierIndex ? checked : false,
+              }))
+            })
+          }
+          onRemove={() =>
+            change((target) => {
+              target.tiers.splice(tierIndex, 1)
+            })
+          }
+        />
+      ))}
+
+      <button
+        className="estudio-button-ghost"
+        type="button"
+        onClick={() =>
+          edit(setDraft, (next) => {
+            const name = 'Novo plano'
+            next.lines[lineIndex].categories[categoryIndex].services[serviceIndex].tiers.push({
+              id: uniqueId(allTierIds(next), `${service.id}-${slugify(name)}`),
+              name,
+              need: '',
+              capture: '',
+              delivery: [''],
+              hours: 1,
+              price: 350,
+              featured: false,
+            })
+          })
+        }
+      >
+        Adicionar plano
+      </button>
+      <button
+        className="estudio-button-ghost"
+        type="button"
+        onClick={() =>
+          edit(setDraft, (next) => {
+            next.lines[lineIndex].categories[categoryIndex].services.splice(serviceIndex, 1)
+          })
+        }
+      >
+        Remover serviço
+      </button>
+    </article>
+  )
+}
+
+function TierEditor({
+  tier,
+  onChange,
+  onFeatured,
+  onRemove,
+}: {
+  tier: Tier
+  onChange: (patch: Partial<Tier>) => void
+  onFeatured: (checked: boolean) => void
+  onRemove: () => void
+}) {
+  return (
+    <article className="estudio-card">
+      <h5>{tier.name}</h5>
+      <label className="estudio-field">
+        <span>Nome</span>
+        <input value={tier.name} onChange={(event) => onChange({ name: event.target.value })} />
+      </label>
+      <label className="estudio-field">
+        <span>Para quem é</span>
+        <input value={tier.need} onChange={(event) => onChange({ need: event.target.value })} />
+      </label>
+      <label className="estudio-field">
+        <span>Cobertura ou captação</span>
+        <input
+          value={tier.capture}
+          onChange={(event) => onChange({ capture: event.target.value })}
+        />
+      </label>
+      <label className="estudio-field">
+        <span>Entregas (uma por linha)</span>
+        <textarea
+          value={tier.delivery.join('\n')}
+          onChange={(event) => onChange({ delivery: event.target.value.split('\n') })}
+        />
+      </label>
+      <div className="estudio-inline">
+        <label className="estudio-field">
+          <span>Preço (R$)</span>
+          <input
+            type="number"
+            min={0}
+            step={10}
+            value={tier.price}
+            onChange={(event) => onChange({ price: Number(event.target.value) })}
+          />
+        </label>
+        <label className="estudio-field">
+          <span>Horas internas</span>
+          <input
+            type="number"
+            min={0}
+            step={0.5}
+            value={tier.hours}
+            onChange={(event) => onChange({ hours: Number(event.target.value) })}
+          />
+        </label>
+      </div>
+      <label className="estudio-check">
+        <input
+          type="checkbox"
+          checked={tier.featured}
+          onChange={(event) => onFeatured(event.target.checked)}
+        />
+        Mais escolhido
+      </label>
+      <button className="estudio-button-ghost" type="button" onClick={onRemove}>
+        Remover plano
+      </button>
+    </article>
+  )
 }
 
 function uniqueCollectionId(items: { id: string }[], base: string): string {

@@ -82,75 +82,81 @@ describe('mapSite', () => {
 })
 
 describe('mapPricing', () => {
+  const empty = {
+    lines: [],
+    categories: [],
+    services: [],
+    tiers: [],
+    addOns: [],
+    pieces: [],
+    rules: [],
+    custom: null,
+  }
+
+  const line = {
+    id: 'momentos',
+    title: 'Momentos',
+    promise: 'P',
+    hint: 'H',
+    lead: 'L',
+    prompt: '?',
+    display: 'exact',
+    unit: 'project',
+    sort_order: 0,
+  }
+
   it('usa o fallback quando as linhas vêm vazias', () => {
-    const catalog = mapPricing({
-      lines: [],
-      tiers: [],
-      addOns: [],
-      pieces: [],
-      rules: [],
-      custom: null,
-    })
-    expect(catalog.lines.map((line) => line.id)).toEqual(
-      fallbackPricing.lines.map((line) => line.id),
+    const catalog = mapPricing(empty)
+    expect(catalog.lines.map((item) => item.id)).toEqual(
+      fallbackPricing.lines.map((item) => item.id),
     )
   })
 
-  it('agrupa tiers na linha e ordena', () => {
+  it('usa o fallback quando o banco ainda não tem categorias', () => {
+    const catalog = mapPricing({ ...empty, lines: [line] })
+    expect(catalog.lines[0]?.categories.length).toBeGreaterThan(0)
+  })
+
+  it('monta linha, categoria, serviço e planos em ordem', () => {
+    const tier = {
+      line_id: 'momentos',
+      service_id: 'ensaios-videomaker',
+      need: 'N',
+      capture: '1h',
+      delivery: ['Reel'],
+      featured: false,
+    }
     const catalog = mapPricing({
-      lines: [
+      ...empty,
+      lines: [line],
+      categories: [
         {
-          id: 'momentos',
-          title: 'Momentos',
+          id: 'ensaios',
+          line_id: 'momentos',
+          title: 'Ensaios',
           promise: 'P',
-          hint: 'H',
-          lead: 'L',
-          prompt: '?',
-          display: 'exact',
-          unit: 'project',
+          hint: '',
+          combo_mode: 'paired',
+          combo_discount: '0.1500',
+          combo_note: 'Nota',
           sort_order: 0,
         },
+      ],
+      services: [
+        { id: 'ensaios-videomaker', category_id: 'ensaios', title: 'Videomaker', lead: 'L', sort_order: 0 },
       ],
       tiers: [
-        {
-          id: 'historia',
-          line_id: 'momentos',
-          name: 'História',
-          need: 'N',
-          capture: '2h',
-          delivery: ['filme'],
-          hours: 10,
-          price: 690,
-          featured: true,
-          sort_order: 1,
-        },
-        {
-          id: 'retrato',
-          line_id: 'momentos',
-          name: 'Retrato',
-          need: 'N',
-          capture: '1h',
-          delivery: ['filme'],
-          hours: 5,
-          price: 390,
-          featured: false,
-          sort_order: 0,
-        },
+        { ...tier, id: 'historia', name: 'História', hours: 10, price: 690, sort_order: 1 },
+        { ...tier, id: 'retrato', name: 'Retrato', hours: 5.5, price: 450, sort_order: 0 },
+        { ...tier, id: 'solto', service_id: null, name: 'Sem serviço', hours: 1, price: 1, sort_order: 2 },
       ],
-      addOns: [
-        { id: 'hora-extra', label: 'Hora', value: 'R$ 120', sort_order: 0 },
-      ],
-      pieces: [
-        { id: 'filme', name: 'Filme', purpose: 'Guardar', body: 'B', sort_order: 0 },
-      ],
-      rules: [{ id: 'sinal', title: 'Sinal', body: '30%', sort_order: 0 }],
       custom: { title: 'Personalizado', lead: 'Lead', floor: 350 },
     })
 
-    expect(catalog.lines[0]?.tiers.map((tier) => tier.id)).toEqual([
-      'retrato',
-      'historia',
-    ])
+    const category = catalog.lines[0]?.categories[0]
+    expect(category?.comboMode).toBe('paired')
+    expect(category?.comboDiscount).toBe(0.15)
+    expect(category?.services[0]?.tiers.map((item) => item.id)).toEqual(['retrato', 'historia'])
     expect(catalog.custom.floor).toBe(350)
     expect(catalog.lines[0]?.hint).toBe('H')
   })

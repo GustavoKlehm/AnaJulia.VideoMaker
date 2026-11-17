@@ -5,12 +5,14 @@ import { whatsappLink } from '../content/site'
 
 type PlanTierProps = {
   tier: Tier
+  /** Serviço e categoria, ex.: "Storymaker · Casamentos", para a mensagem do WhatsApp. */
+  label: string
   unit: PricingLine['unit']
   planMessage: string
   phone: string
 }
 
-export function PlanTier({ tier, unit, planMessage, phone }: PlanTierProps) {
+export function PlanTier({ tier, label, unit, planMessage, phone }: PlanTierProps) {
   const classes = `tier${tier.featured ? ' tier--featured' : ''}`
 
   return (
@@ -21,6 +23,7 @@ export function PlanTier({ tier, unit, planMessage, phone }: PlanTierProps) {
         {formatBRL(tier.price)}
         {unit === 'month' ? <span className="tier__unit">/mês</span> : null}
       </p>
+      <p className="tier__need">{tier.need}</p>
       <p className="tier__capture">{tier.capture}</p>
       <ul className="tier__delivery">
         {tier.delivery.map((item) => (
@@ -29,7 +32,7 @@ export function PlanTier({ tier, unit, planMessage, phone }: PlanTierProps) {
       </ul>
       <a
         className="tier__cta"
-        href={whatsappLink(planWhatsappMessage(planMessage, tier.name), phone)}
+        href={whatsappLink(planWhatsappMessage(planMessage, `${tier.name} (${label})`), phone)}
         target="_blank"
         rel="noopener noreferrer"
       >

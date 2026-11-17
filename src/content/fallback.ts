@@ -49,7 +49,7 @@ export const fallbackSite: SiteContent = {
       'Valem para qualquer plano e sempre aparecem discriminados no orçamento, nunca embutidos no total.',
     piecesHeading: 'O que é cada peça',
     piecesLead:
-      'O filme é para guardar, o teaser é para postar, os cortes são para não sumir do feed. Cada um dá um trabalho diferente — é por isso que os planos custam preços diferentes.',
+      'Os stories são para viver junto, o Reel de melhores momentos é para guardar, os curtos são para não sumir do feed. Cada um dá um trabalho diferente — é por isso que os planos custam preços diferentes.',
     rulesTitle: 'Como funciona',
     rulesLead: 'As mesmas condições para todo mundo, combinadas antes de começar.',
     ctaHeading: 'Conte o momento que você quer guardar',
@@ -58,10 +58,7 @@ export const fallbackSite: SiteContent = {
 }
 
 export const fallbackPricing: PricingCatalog = {
-  lines: lines.map((line) => ({
-    ...line,
-    tiers: line.tiers.map((tier) => ({ ...tier, delivery: [...tier.delivery] })),
-  })),
+  lines: structuredClone(lines) as PricingCatalog['lines'],
   addOns: addOns.map((item) => ({ ...item })),
   pieces: pieces.map((item) => ({ ...item })),
   rules: rules.map((item) => ({ ...item })),

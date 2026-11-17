@@ -1,9 +1,12 @@
 import { fallbackPricing, fallbackSite } from './fallback'
+import type { ComboMode } from './pricing'
 import type {
   MediaAssetRow,
   PricingCatalog,
+  PricingCategoryRow,
   PricingCustomRow,
   PricingLineRow,
+  PricingServiceRow,
   PricingTierRow,
   SiteContent,
   SiteSettingsRow,
@@ -98,24 +101,44 @@ function sortRows<T extends { sort_order: number }>(rows: T[]): T[] {
   return [...rows].sort((a, b) => a.sort_order - b.sort_order)
 }
 
+function groupBy<T extends { sort_order: number }>(
+  rows: T[],
+  key: (row: T) => string | null,
+): Map<string, T[]> {
+  const map = new Map<string, T[]>()
+  for (const row of sortRows(rows)) {
+    const id = key(row)
+    if (!id) {
+      continue
+    }
+    const list = map.get(id) ?? []
+    list.push(row)
+    map.set(id, list)
+  }
+  return map
+}
+
+function comboMode(value: string): ComboMode {
+  return value === 'paired' || value === 'free' ? value : 'none'
+}
+
 export function mapPricing(input: {
   lines: PricingLineRow[]
+  categories: PricingCategoryRow[]
+  services: PricingServiceRow[]
   tiers: PricingTierRow[]
   addOns: SortableRow[]
   pieces: SortableRow[]
   rules: SortableRow[]
   custom: PricingCustomRow | null
 }): PricingCatalog {
-  if (input.lines.length === 0) {
+  if (input.lines.length === 0 || input.categories.length === 0) {
     return structuredClone(fallbackPricing)
   }
 
-  const tiersByLine = new Map<string, PricingTierRow[]>()
-  for (const tier of sortRows(input.tiers)) {
-    const list = tiersByLine.get(tier.line_id) ?? []
-    list.push(tier)
-    tiersByLine.set(tier.line_id, list)
-  }
+  const categoriesByLine = groupBy(input.categories, (row) => row.line_id)
+  const servicesByCategory = groupBy(input.services, (row) => row.category_id)
+  const tiersByService = groupBy(input.tiers, (row) => row.service_id)
 
   return {
     lines: sortRows(input.lines).map((line) => ({
@@ -127,15 +150,29 @@ export function mapPricing(input: {
       prompt: line.prompt,
       display: line.display === 'from' ? 'from' : 'exact',
       unit: line.unit === 'month' ? 'month' : 'project',
-      tiers: (tiersByLine.get(line.id) ?? []).map((tier) => ({
-        id: tier.id,
-        name: tier.name,
-        need: tier.need,
-        capture: tier.capture,
-        delivery: [...tier.delivery],
-        hours: Number(tier.hours),
-        price: Number(tier.price),
-        featured: tier.featured,
+      categories: (categoriesByLine.get(line.id) ?? []).map((category) => ({
+        id: category.id,
+        title: category.title,
+        promise: category.promise,
+        hint: category.hint ?? '',
+        comboMode: comboMode(category.combo_mode),
+        comboDiscount: Number(category.combo_discount) || 0,
+        comboNote: category.combo_note ?? '',
+        services: (servicesByCategory.get(category.id) ?? []).map((service) => ({
+          id: service.id,
+          title: service.title,
+          lead: service.lead ?? '',
+          tiers: (tiersByService.get(service.id) ?? []).map((tier) => ({
+            id: tier.id,
+            name: tier.name,
+            need: tier.need,
+            capture: tier.capture,
+            delivery: [...tier.delivery],
+            hours: Number(tier.hours),
+            price: Number(tier.price),
+            featured: tier.featured,
+          })),
+        })),
       })),
     })),
     addOns: sortRows(input.addOns).map((item) => ({

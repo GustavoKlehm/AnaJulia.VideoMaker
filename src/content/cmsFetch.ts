@@ -3,8 +3,10 @@ import { mapPricing, mapSite } from './cmsMap'
 import type {
   MediaAssetRow,
   PricingCatalog,
+  PricingCategoryRow,
   PricingCustomRow,
   PricingLineRow,
+  PricingServiceRow,
   PricingTierRow,
   SiteContent,
   SiteSettingsRow,
@@ -29,6 +31,8 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
     storiesRes,
     mediaRes,
     linesRes,
+    categoriesRes,
+    servicesRes,
     tiersRes,
     addOnsRes,
     piecesRes,
@@ -39,6 +43,8 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
     client.from('stories').select('*').order('sort_order'),
     client.from('media_assets').select('*'),
     client.from('pricing_lines').select('*').order('sort_order'),
+    client.from('pricing_categories').select('*').order('sort_order'),
+    client.from('pricing_services').select('*').order('sort_order'),
     client.from('pricing_tiers').select('*').order('sort_order'),
     client.from('pricing_addons').select('*').order('sort_order'),
     client.from('pricing_pieces').select('*').order('sort_order'),
@@ -50,6 +56,8 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
   throwIfError(storiesRes.error, 'stories')
   throwIfError(mediaRes.error, 'media_assets')
   throwIfError(linesRes.error, 'pricing_lines')
+  throwIfError(categoriesRes.error, 'pricing_categories')
+  throwIfError(servicesRes.error, 'pricing_services')
   throwIfError(tiersRes.error, 'pricing_tiers')
   throwIfError(addOnsRes.error, 'pricing_addons')
   throwIfError(piecesRes.error, 'pricing_pieces')
@@ -69,6 +77,8 @@ export async function fetchCms(client: SupabaseClient): Promise<CmsSnapshot> {
     ),
     pricing: mapPricing({
       lines: (linesRes.data ?? []) as PricingLineRow[],
+      categories: (categoriesRes.data ?? []) as PricingCategoryRow[],
+      services: (servicesRes.data ?? []) as PricingServiceRow[],
       tiers: (tiersRes.data ?? []) as PricingTierRow[],
       addOns: (addOnsRes.data ?? []) as SortableRow[],
       pieces: (piecesRes.data ?? []) as SortableRow[],

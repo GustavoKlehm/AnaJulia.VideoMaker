@@ -1,24 +1,20 @@
 import { ArrowRight, InstagramLogo, WhatsappLogo } from '@phosphor-icons/react'
 import { SiteHeader } from '../components/SiteHeader'
-import { PlanTier } from '../components/PlanTier'
+import { CatalogAll } from '../components/CatalogAll'
 import { GuidedCatalog } from '../components/GuidedCatalog'
 import { Reveal } from '../components/Reveal'
 import { useCms } from '../content/cmsContext'
 import type { PricingLine } from '../content/pricing'
-import { formatBRL } from '../content/pricing'
+import { formatBRL, lineTiers } from '../content/pricing'
 import { whatsappLink } from '../content/site'
-import type { LineId, PlanosState } from '../lib/planosState'
-import { usePlanosState } from '../lib/planosState'
+import type { LineId } from '../lib/planosState'
+import { emptyPlanosState, usePlanosState } from '../lib/planosState'
 import './PlanosPage.css'
 
 function startingAt(line: PricingLine): string {
-  const lowest = Math.min(...line.tiers.map((tier) => tier.price))
+  const lowest = Math.min(...lineTiers(line).map((tier) => tier.price))
   const suffix = line.unit === 'month' ? '/mês' : ''
   return `A partir de ${formatBRL(lowest)}${suffix}`
-}
-
-function emptyState(): PlanosState {
-  return { view: 'guided', tipo: null, plano: null }
 }
 
 export function PlanosPage() {
@@ -28,7 +24,7 @@ export function PlanosPage() {
   const activeLine = lines.find((line) => line.id === state.tipo)
 
   function selectTipo(tipo: LineId) {
-    setState({ view: 'guided', tipo, plano: null })
+    setState({ ...emptyPlanosState(), tipo })
   }
 
   return (
@@ -81,8 +77,8 @@ export function PlanosPage() {
               onClick={() =>
                 setState(
                   state.view === 'all'
-                    ? emptyState()
-                    : { ...emptyState(), view: 'all' },
+                    ? emptyPlanosState()
+                    : { ...emptyPlanosState(), view: 'all' },
                 )
               }
             >
@@ -119,17 +115,11 @@ export function PlanosPage() {
                     <p className="line__lead">{line.lead}</p>
                     {line.hint ? <p className="line__hint">{line.hint}</p> : null}
                   </Reveal>
-                  <div className="tiers">
-                    {line.tiers.map((tier) => (
-                      <PlanTier
-                        key={tier.id}
-                        tier={tier}
-                        unit={line.unit}
-                        planMessage={site.messages.plan}
-                        phone={site.whatsappPhone}
-                      />
-                    ))}
-                  </div>
+                  <CatalogAll
+                    line={line}
+                    planMessage={site.messages.plan}
+                    phone={site.whatsappPhone}
+                  />
                 </div>
               </section>
             ))

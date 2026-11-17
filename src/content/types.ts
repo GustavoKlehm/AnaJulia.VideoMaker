@@ -133,9 +133,30 @@ export type PricingLineRow = {
   sort_order: number
 }
 
+export type PricingCategoryRow = {
+  id: string
+  line_id: string
+  title: string
+  promise: string
+  hint: string
+  combo_mode: 'none' | 'paired' | 'free' | string
+  combo_discount: number | string
+  combo_note: string
+  sort_order: number
+}
+
+export type PricingServiceRow = {
+  id: string
+  category_id: string
+  title: string
+  lead: string
+  sort_order: number
+}
+
 export type PricingTierRow = {
   id: string
   line_id: string
+  service_id: string | null
   name: string
   need: string
   capture: string
