@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estudioClienteSlug, navHref, resolveEstudioPath, resolvePortalPath, resolveRoute } from './router'
+import { entregaToken, estudioClienteSlug, estudioEntregaId, navHref, resolveEstudioPath, resolvePortalPath, resolveRoute } from './router'
 
 describe('resolveRoute', () => {
   it('reconhece a rota de planos', () => {
@@ -64,6 +64,24 @@ describe('área do cliente', () => {
     })
     expect(resolvePortalPath('/cliente/soul-circo/2026-11-e-12/')).toMatchObject({ periodo: '2026-11-e-12' })
     expect(resolvePortalPath('/cliente/Soul/x')).toEqual({ view: 'inicio' })
+  })
+})
+
+describe('entregas', () => {
+  const token = 'Ab3_-xYz0123456789abcdEF'
+  const id = '6f1c2a9e-1b2c-4d5e-8f90-123456789abc'
+
+  it('reconhece o link público da entrega', () => {
+    expect(resolveRoute(`/entrega/${token}`)).toBe('entrega')
+    expect(entregaToken(`/entrega/${token}/`)).toBe(token)
+    expect(resolveRoute('/entrega/curto')).toBe('home')
+  })
+
+  it('mapeia a lista e o detalhe no estúdio', () => {
+    expect(resolveEstudioPath('/estudio/entregas')).toBe('entregas')
+    expect(resolveEstudioPath(`/estudio/entregas/${id}`)).toBe('entrega')
+    expect(estudioEntregaId(`/estudio/entregas/${id}`)).toBe(id)
+    expect(estudioEntregaId('/estudio/entregas')).toBeNull()
   })
 })
 

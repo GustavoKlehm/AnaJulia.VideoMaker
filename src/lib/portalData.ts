@@ -1,5 +1,6 @@
 import type { PlanFormat, PlanSection } from '../shared/portalPlan'
 import { groupReviews, itemReviewState, summarize, type ItemReviewState, type PlanSummary, type ReviewRow } from '../shared/portalStatus'
+import { deliveryState, todayInBrazil } from '../shared/delivery'
 import { getSupabase } from './supabase'
 
 export type PortalClient = {
@@ -50,6 +51,18 @@ export type PortalNote = {
 
 export type PlanWithSummary = PortalPlan & { resumo: PlanSummary }
 
+export type PortalDelivery = {
+  id: string
+  client_id: string
+  token: string
+  titulo: string
+  data_evento: string | null
+  expira_em: string | null
+  ativo: boolean
+  arquivos_apagados_em: string | null
+  created_at: string
+}
+
 function check<T>(result: { data: T | null; error: { message: string } | null }): T {
   if (result.error) throw new Error(result.error.message)
   return result.data as T
@@ -69,7 +82,7 @@ async function loadReviews(itemIds: string[]): Promise<ReviewRow[]> {
 }
 
 /** Clientes visíveis para quem está logado (o próprio, ou todos para a Ana) com os planos e o resumo de cada um. */
-export async function loadOverview(): Promise<{ client: PortalClient; plans: PlanWithSummary[] }[]> {
+export async function loadOverview(): Promise<{ client: PortalClient; plans: PlanWithSummary[]; deliveries: PortalDelivery[] }[]> {
   const db = getSupabase()
   const clients = check(await db.from('portal_clients').select(CLIENT_COLUMNS).eq('ativo', true).order('nome')) as PortalClient[]
   if (clients.length === 0) return []
@@ -81,6 +94,18 @@ export async function loadOverview(): Promise<{ client: PortalClient; plans: Pla
       .in('client_id', clients.map((c) => c.id))
       .order('inicio', { ascending: false }),
   ) as PortalPlan[]
+
+  // A Ana (admin) também recebe as vencidas/desligadas pela RLS; aqui só entram as que estão no ar.
+  const today = todayInBrazil()
+  const deliveries = (
+    check(
+      await db
+        .from('portal_deliveries')
+        .select('id, client_id, token, titulo, data_evento, expira_em, ativo, arquivos_apagados_em, created_at')
+        .in('client_id', clients.map((c) => c.id))
+        .order('created_at', { ascending: false }),
+    ) as PortalDelivery[]
+  ).filter((d) => deliveryState(d, today) === 'ativa')
 
   const items =
     plans.length === 0
@@ -96,6 +121,7 @@ export async function loadOverview(): Promise<{ client: PortalClient; plans: Pla
 
   return clients.map((client) => ({
     client,
+    deliveries: deliveries.filter((d) => d.client_id === client.id),
     plans: plans
       .filter((p) => p.client_id === client.id)
       .map((plan) => ({

@@ -11,7 +11,7 @@ import { getSupabase } from './supabase'
 
 type Origin = 'expx' | 'estudio'
 
-type ClientRow = {
+export type ClientRow = {
   id: string
   slug: string
   nome: string
@@ -34,7 +34,7 @@ type PlanRow = {
 }
 
 /** ExPx entra com o token de sincronização; o estúdio, com a sessão de admin. */
-async function authorize(req: Request, res: Response, onlyExpx = false): Promise<Origin | null> {
+export async function authorize(req: Request, res: Response, onlyExpx = false): Promise<Origin | null> {
   const token = readBearerToken(req.headers.authorization)
   if (matchesSyncToken(token, process.env.EXPX_SYNC_TOKEN)) {
     return 'expx'
@@ -60,7 +60,7 @@ async function authorize(req: Request, res: Response, onlyExpx = false): Promise
   }
 }
 
-function fail(res: Response, cause: unknown, message: string) {
+export function fail(res: Response, cause: unknown, message: string) {
   console.error('[portal]', message, cause)
   res.status(500).json({ error: message })
 }
@@ -81,12 +81,12 @@ function mapContact(row: ContactRow) {
   return { nome: row.nome, telefone: row.telefone, ativo: row.ativo, criadoEm: row.created_at }
 }
 
-function portalUrl(req: Request, path: string): string {
+export function portalUrl(req: Request, path: string): string {
   const base = process.env.PORTAL_PUBLIC_URL?.replace(/\/+$/, '') ?? `${req.protocol}://${req.get('host') ?? 'localhost'}`
   return `${base}${path}`
 }
 
-async function loadClient(db: SupabaseClient, res: Response, rawSlug: unknown): Promise<ClientRow | null> {
+export async function loadClient(db: SupabaseClient, res: Response, rawSlug: unknown): Promise<ClientRow | null> {
   const slug = parseSlugParam(rawSlug)
   if (!slug) {
     res.status(400).json({ error: 'Slug inválido: use letras minúsculas, números e hífen.' })

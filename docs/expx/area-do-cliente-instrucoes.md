@@ -451,3 +451,15 @@ Faça na ordem, um cliente por vez, e confira antes de seguir:
 4. `respostas teste-expx <periodo>`: o `respostas.md` deve mostrar as duas respostas.
 5. Mude o texto do post com ajuste (mesmo id), envie de novo: o resultado deve dizer `alterados 1`, e no site o post aparece como "atualizado".
 6. Remova o contato do `cliente.json` e rode `cliente teste-expx`: o login deve parar de ver o plano. Depois peça ao Gustavo para apagar o cliente de teste.
+
+---
+
+## 11. Entregas de vídeo (opcional, 2026-11-19)
+
+O site agora tem **entregas**: a Ana sobe vídeos/fotos e o cliente recebe um link `/entrega/<token>` que abre sem login. Hoje isso é feito pela tela do estúdio (`/estudio/entregas`) e **não exige nada do ExPx**. Nada do que está acima mudou.
+
+Se um dia o ExPx quiser criar entregas, as rotas aceitam o mesmo `EXPX_SYNC_TOKEN`. Resumo (detalhes em `AnaJulia.VideoMaker/docs/superpowers/specs/2026-11-19-entregas.md`):
+
+- `POST /api/portal/clientes/<slug>/entregas` com `{ "titulo": "...", "dataEvento": "AAAA-MM-DD", "expiraEm": "AAAA-MM-DD" }` → devolve `entrega.id` e `entrega.link`.
+- Para cada arquivo: `POST /api/portal/entregas/<id>/arquivos/envio` `{ nome, tamanho }` → `PUT` do arquivo na `signedUrl` com `content-type: tipo` → `POST /api/portal/entregas/<id>/arquivos` `{ path, nome }`.
+- O link e a validade aparecem na resposta; o cliente precisa existir antes (mesmo `slug`).

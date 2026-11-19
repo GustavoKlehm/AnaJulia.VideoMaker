@@ -1,0 +1,50 @@
+/* Página pública da entrega: usa o layout do portal (portal.css) e as cores do cliente. */
+
+.entrega-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entrega-card {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--portal-line);
+  border-radius: var(--portal-radius);
+  background: var(--portal-surface);
+}
+
+.entrega-card video,
+.entrega-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: contain;
+  background: #111;
+}
+
+.entrega-card__body {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.entrega-card__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.entrega-card__actions {
+  display: grid;
+  gap: 8px;
+}
+
+.entrega-card__actions .portal-button {
+  width: 100%;
+  text-decoration: none;
+}

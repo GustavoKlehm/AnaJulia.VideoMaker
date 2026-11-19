@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { RouteLink } from '../../components/RouteLink'
 import { useAuth } from '../../hooks/useAuth'
+import { listClientDeliveries, type AdminDelivery } from '../../lib/deliveryAdminApi'
 import { periodLabel } from '../../lib/portalCalendar'
 import {
   addContact,
@@ -16,9 +17,10 @@ import {
 import { formatPhone, maskPhone, normalizePhone } from '../../shared/phone'
 import { normalizeHex } from '../../shared/portalPlan'
 import { AccessCard, ColorField, ThemePreview } from './EstudioClienteParts'
+import { DeliveryList } from './EstudioEntregas'
 import './estudio.css'
 
-type Detail = { cliente: AdminClient; contatos: AdminContact[]; planos: AdminPlan[] }
+type Detail = { cliente: AdminClient; contatos: AdminContact[]; planos: AdminPlan[]; entregas: AdminDelivery[] }
 
 export function EstudioCliente({ slug }: { slug: string }) {
   const { session } = useAuth()
@@ -30,7 +32,8 @@ export function EstudioCliente({ slug }: { slug: string }) {
 
   const load = useCallback(async () => {
     if (!session) return
-    setDetail(await getClient(session, slug))
+    const [client, deliveries] = await Promise.all([getClient(session, slug), listClientDeliveries(session, slug)])
+    setDetail({ ...client, entregas: deliveries.entregas })
   }, [session, slug])
 
   useEffect(() => {
@@ -61,7 +64,7 @@ export function EstudioCliente({ slug }: { slug: string }) {
     )
   }
 
-  const { cliente, contatos, planos } = detail
+  const { cliente, contatos, planos, entregas } = detail
 
   return (
     <main className="estudio-page">
@@ -97,6 +100,17 @@ export function EstudioCliente({ slug }: { slug: string }) {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="estudio-card">
+        <h2>Entregas</h2>
+        {entregas.length === 0 ? <p className="estudio-help">Nenhuma entrega de vídeo ainda.</p> : null}
+        <DeliveryList entregas={entregas} />
+        <div className="estudio-actions">
+          <RouteLink className="estudio-button-ghost" to={`/estudio/entregas?cliente=${cliente.slug}`}>
+            Nova entrega
+          </RouteLink>
+        </div>
       </section>
 
       <section className="estudio-card">

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
-import { estudioClienteSlug, resolveEstudioPath } from '../../lib/router'
+import { estudioClienteSlug, estudioEntregaId, resolveEstudioPath } from '../../lib/router'
 import { EstudioAgenda } from './EstudioAgenda'
 import { EstudioCatalogo } from './EstudioCatalogo'
 import { EstudioCliente } from './EstudioCliente'
 import { EstudioClientes } from './EstudioClientes'
+import { EstudioEntrega } from './EstudioEntrega'
+import { EstudioEntregas } from './EstudioEntregas'
 import { EstudioEquipe } from './EstudioEquipe'
 import { EstudioHistorias } from './EstudioHistorias'
 import { EstudioHome } from './EstudioHome'
@@ -19,6 +21,7 @@ export function EstudioApp() {
   const [pathname, setPathname] = useState(() => window.location.pathname)
   const path = resolveEstudioPath(pathname)
   const clienteSlug = estudioClienteSlug(pathname)
+  const entregaId = estudioEntregaId(pathname)
 
   useEffect(() => {
     document.title = 'Estúdio — Ana Julia'
@@ -92,6 +95,8 @@ export function EstudioApp() {
         {path === 'equipe' ? <EstudioEquipe /> : null}
         {path === 'clientes' ? <EstudioClientes /> : null}
         {path === 'cliente' && clienteSlug ? <EstudioCliente key={clienteSlug} slug={clienteSlug} /> : null}
+        {path === 'entregas' ? <EstudioEntregas /> : null}
+        {path === 'entrega' && entregaId ? <EstudioEntrega key={entregaId} id={entregaId} /> : null}
         {path === 'inicio' ? <EstudioHome /> : null}
       </EstudioShell>
     </div>

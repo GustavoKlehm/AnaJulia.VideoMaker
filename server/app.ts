@@ -1,5 +1,6 @@
 import express from 'express'
 import { createStudioUser, listStudioUsers, promoteStudioUser } from './estudioRoutes'
+import { deliveryAdminRouter, deliveryPublicRouter } from './deliveryRoutes'
 import { portalRouter } from './portalRoutes'
 
 const app = express()
@@ -24,5 +25,7 @@ app.post('/api/estudio/users/promote', (req, res) => {
 })
 
 app.use('/api/portal', portalRouter())
+app.use('/api/portal', deliveryAdminRouter())
+app.use('/api/entregas', deliveryPublicRouter())
 
 export default app

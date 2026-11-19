@@ -15,6 +15,9 @@ export function EstudioHome() {
         <RouteLink to="/estudio/clientes">
           Clientes <span aria-hidden="true">→</span>
         </RouteLink>
+        <RouteLink to="/estudio/entregas">
+          Entregas <span aria-hidden="true">→</span>
+        </RouteLink>
         <RouteLink to="/estudio/catalogo">
           Catálogo <span aria-hidden="true">→</span>
         </RouteLink>

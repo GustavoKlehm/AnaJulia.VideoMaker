@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { NavItem } from '../content/site'
 
-export type Route = 'home' | 'planos' | 'estudio' | 'cliente'
+export type Route = 'home' | 'planos' | 'estudio' | 'cliente' | 'entrega'
 export type EstudioPath =
   | 'inicio'
   | 'agenda'
@@ -12,6 +12,8 @@ export type EstudioPath =
   | 'equipe'
   | 'clientes'
   | 'cliente'
+  | 'entregas'
+  | 'entrega'
 
 export function resolveRoute(pathname: string): Route {
   const normalized = pathname.replace(/\/+$/, '') || '/'
@@ -23,6 +25,9 @@ export function resolveRoute(pathname: string): Route {
   }
   if (normalized === '/cliente' || normalized.startsWith('/cliente/')) {
     return 'cliente'
+  }
+  if (entregaToken(normalized)) {
+    return 'entrega'
   }
   return 'home'
 }
@@ -38,6 +43,18 @@ export function resolvePortalPath(pathname: string): PortalPath {
 /** Slug do cliente em /estudio/clientes/<slug>. */
 export function estudioClienteSlug(pathname: string): string | null {
   const match = /^\/estudio\/clientes\/([a-z0-9-]+)\/?$/.exec(pathname)
+  return match ? match[1] : null
+}
+
+/** Token do link público /entrega/<token>. */
+export function entregaToken(pathname: string): string | null {
+  const match = /^\/entrega\/([A-Za-z0-9_-]{20,64})\/?$/.exec(pathname)
+  return match ? match[1] : null
+}
+
+/** Id da entrega em /estudio/entregas/<id>. */
+export function estudioEntregaId(pathname: string): string | null {
+  const match = /^\/estudio\/entregas\/([0-9a-f-]{36})\/?$/.exec(pathname)
   return match ? match[1] : null
 }
 
@@ -66,6 +83,12 @@ export function resolveEstudioPath(pathname: string): EstudioPath {
   }
   if (estudioClienteSlug(normalized)) {
     return 'cliente'
+  }
+  if (normalized === '/estudio/entregas') {
+    return 'entregas'
+  }
+  if (estudioEntregaId(normalized)) {
+    return 'entrega'
   }
   return 'inicio'
 }
