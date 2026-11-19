@@ -130,7 +130,7 @@ values
   ('festas-video-instante', 'momentos', 'festas-videomaker', $s$Instante$s$, $s$Parabéns, revelação e os momentos-chave.$s$, $s$Até 2h de cobertura, 1 local$s$, array[$s$1 Reel de melhores momentos (até 90s)$s$, $s$1 Reel curto (30 a 45s)$s$], 8.5, 590, false, 0),
   ('festas-video-enredo', 'momentos', 'festas-videomaker', $s$Enredo$s$, $s$A festa toda, da chegada dos convidados ao bolo.$s$, $s$Até 5h de cobertura, 1 local$s$, array[$s$1 Reel de melhores momentos (até 90s)$s$, $s$3 Reels curtos (30 a 45s)$s$], 15, 1090, true, 1),
   ('festas-video-jornada', 'momentos', 'festas-videomaker', $s$Jornada$s$, $s$Festas longas, do preparo ao fim da noite.$s$, $s$Até 8h de cobertura, 1 local$s$, array[$s$1 Reel de melhores momentos (até 90s)$s$, $s$5 Reels curtos (30 a 45s)$s$], 21.5, 1590, false, 2),
-  ('retrato', 'momentos', 'ensaios-videomaker', $s$Retrato$s$, $s$Um ensaio curto, num lugar só.$s$, $s$1h de captação, 1 local$s$, array[$s$1 Reel de até 60s$s$], 5.5, 450, false, 0),
+  ('retrato', 'momentos', 'ensaios-videomaker', $s$Retrato$s$, $s$Um ensaio curto, num lugar só.$s$, $s$1h de captação, 1 local$s$, array[$s$1 Reel de até 60s$s$, $s$1 Reel curto de até 30s$s$], 6.5, 450, false, 0),
   ('historia', 'momentos', 'ensaios-videomaker', $s$História$s$, $s$Um ensaio com mais de um cenário.$s$, $s$2h de captação, até 2 locais$s$, array[$s$1 Reel de até 90s$s$, $s$2 Reels curtos (30 a 45s)$s$], 10, 690, true, 1),
   ('capitulo', 'momentos', 'ensaios-videomaker', $s$Capítulo$s$, $s$Um ensaio pensado em detalhe.$s$, $s$3h de captação, até 3 locais, com roteiro e referências combinados antes$s$, array[$s$1 Reel de até 90s$s$, $s$4 Reels curtos (30 a 45s)$s$], 15, 1090, false, 2),
   ('essencial', 'marcas', 'marcas-video', $s$Essencial$s$, $s$Para o pequeno negócio que está começando a aparecer.$s$, $s$1 ida por mês, até 1h de captação$s$, array[$s$2 Reels de até 45s$s$, $s$1 rodada de revisão por Reel$s$], 5.5, 390, false, 0),
@@ -143,14 +143,12 @@ values
 delete from public.pricing_addons;
 insert into public.pricing_addons (id, label, value, sort_order)
 values
-  ('hora-extra-story', $s$Hora extra de storymaker$s$, $s$R$ 150$s$, 0),
-  ('hora-extra-video', $s$Hora extra de videomaker$s$, $s$R$ 200$s$, 1),
-  ('hora-extra-combo', $s$Hora extra de storymaker + videomaker$s$, $s$R$ 300$s$, 2),
-  ('peca-extra', $s$Reel extra, ou edição de vídeo bruto enviado pelo cliente$s$, $s$R$ 180$s$, 3),
-  ('revisao-extra', $s$Rodada de revisão além das inclusas$s$, $s$R$ 150$s$, 4),
-  ('versao-extra', $s$Versão com legenda ou sem trilha$s$, $s$R$ 90$s$, 5),
-  ('urgencia', $s$Entrega em até 48h$s$, $s$+40%$s$, 6),
-  ('deslocamento', $s$Deslocamento acima de 20 km de Dois Vizinhos$s$, $s$R$ 2,00/km rodado$s$, 7);
+  ('hora-extra', $s$Hora extra de cobertura no dia$s$, $s$R$ 200$s$, 0),
+  ('peca-extra', $s$Reel extra, ou edição de vídeo bruto enviado pelo cliente$s$, $s$R$ 180$s$, 1),
+  ('revisao-extra', $s$Rodada de revisão além das inclusas$s$, $s$R$ 150$s$, 2),
+  ('versao-extra', $s$Versão com legenda ou sem trilha$s$, $s$R$ 90$s$, 3),
+  ('urgencia', $s$Entrega em até 48h$s$, $s$+40%$s$, 4),
+  ('deslocamento', $s$Deslocamento acima de 20 km de Dois Vizinhos$s$, $s$R$ 2,00/km rodado$s$, 5);
 
 delete from public.pricing_pieces;
 insert into public.pricing_pieces (id, name, purpose, body, sort_order)

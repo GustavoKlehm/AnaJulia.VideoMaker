@@ -424,8 +424,8 @@ export const lines: readonly PricingLine[] = [
                 name: 'Retrato',
                 need: 'Um ensaio curto, num lugar só.',
                 capture: '1h de captação, 1 local',
-                delivery: ['1 Reel de até 60s'],
-                hours: 5.5,
+                delivery: ['1 Reel de até 60s', '1 Reel curto de até 30s'],
+                hours: 6.5,
                 price: 450,
               }),
               tier({
@@ -567,13 +567,7 @@ export const custom = {
 }
 
 export const addOns: readonly AddOn[] = [
-  { id: 'hora-extra-story', label: 'Hora extra de storymaker', value: 'R$ 150' },
-  { id: 'hora-extra-video', label: 'Hora extra de videomaker', value: 'R$ 200' },
-  {
-    id: 'hora-extra-combo',
-    label: 'Hora extra de storymaker + videomaker',
-    value: 'R$ 300',
-  },
+  { id: 'hora-extra', label: 'Hora extra de cobertura no dia', value: 'R$ 200' },
   {
     id: 'peca-extra',
     label: 'Reel extra, ou edição de vídeo bruto enviado pelo cliente',
