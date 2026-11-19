@@ -15,6 +15,10 @@
   --color-destructive: #dc2626;
   --color-on-destructive: #ffffff;
   --color-ring: #000000;
+  --color-warning: #b45309;
+  --color-warning-soft: #fef3c7;
+  --color-success: #15803d;
+  --color-selected: #f1efea;
   --color-cinema: #0a0a0a;
   --color-on-cinema: #f8f8f8;
   --color-cinema-muted: #a3a3a3;
