@@ -1,11 +1,11 @@
 import type { Request, Response } from 'express'
-import { getSupabase } from './supabase'
+import { getSupabase } from './supabase.js'
 import {
   mapStudioMember,
   parseCreateUserBody,
   parsePromoteBody,
   readBearerToken,
-} from './estudioUsers'
+} from './estudioUsers.js'
 
 async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   const token = readBearerToken(req.headers.authorization)

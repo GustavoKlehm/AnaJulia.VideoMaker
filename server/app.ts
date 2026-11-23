@@ -1,7 +1,7 @@
 import express from 'express'
-import { createStudioUser, listStudioUsers, promoteStudioUser } from './estudioRoutes'
-import { deliveryAdminRouter, deliveryPublicRouter } from './deliveryRoutes'
-import { portalRouter } from './portalRoutes'
+import { createStudioUser, listStudioUsers, promoteStudioUser } from './estudioRoutes.js'
+import { deliveryAdminRouter, deliveryPublicRouter } from './deliveryRoutes.js'
+import { portalRouter } from './portalRoutes.js'
 
 const app = express()
 

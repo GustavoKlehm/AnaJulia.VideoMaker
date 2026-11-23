@@ -1,7 +1,7 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js'
-import { loginEmailForPhone } from '../src/shared/phone'
-import type { ContactInput } from './portalInput'
-import { generatePin } from './portalInput'
+import { loginEmailForPhone } from '../src/shared/phone.js'
+import type { ContactInput } from './portalInput.js'
+import { generatePin } from './portalInput.js'
 
 const BAN_FOREVER = '876000h'
 

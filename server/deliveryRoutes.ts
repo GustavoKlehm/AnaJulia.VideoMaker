@@ -13,11 +13,11 @@ import {
   parseDeliveryInput,
   safeFileName,
   todayInBrazil,
-} from '../src/shared/delivery'
-import { readBearerToken } from './estudioUsers'
-import { matchesSyncToken } from './portalInput'
-import { authorize, fail, loadClient, portalUrl, type ClientRow } from './portalRoutes'
-import { getSupabase } from './supabase'
+} from '../src/shared/delivery.js'
+import { readBearerToken } from './estudioUsers.js'
+import { matchesSyncToken } from './portalInput.js'
+import { authorize, fail, loadClient, portalUrl, type ClientRow } from './portalRoutes.js'
+import { getSupabase } from './supabase.js'
 
 type DeliveryRow = {
   id: string

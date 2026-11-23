@@ -1,6 +1,6 @@
 import { randomInt, timingSafeEqual } from 'node:crypto'
-import { normalizePhone } from '../src/shared/phone'
-import { isSlug, normalizeHex } from '../src/shared/portalPlan'
+import { normalizePhone } from '../src/shared/phone.js'
+import { isSlug, normalizeHex } from '../src/shared/portalPlan.js'
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string }
 
