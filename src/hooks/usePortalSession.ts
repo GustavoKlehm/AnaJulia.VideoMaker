@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { isAdminFromUser } from '../lib/authRole'
+import { isAdminFromUser, sameAuthIdentity } from '../lib/authRole'
 import { getSupabase } from '../lib/supabase'
 import { loginEmailForPhone, normalizePhone } from '../shared/phone'
 
@@ -23,7 +23,10 @@ export function usePortalSession() {
       setSession(data.session)
       setLoading(false)
     })
-    const { data } = client.auth.onAuthStateChange((_event, next) => setSession(next))
+    // Ignora TOKEN_REFRESHED e o SIGNED_IN repetido de quando a aba volta a ficar visível: só muda com outro usuário.
+    const { data } = client.auth.onAuthStateChange((_event, next) => {
+      setSession((current) => (sameAuthIdentity(current?.user, next?.user) ? current : next))
+    })
     return () => data.subscription.unsubscribe()
   }, [])
 

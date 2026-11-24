@@ -1,0 +1,83 @@
+/* Vídeo de entrega (página do cliente e estúdio): capa com botão de play; o <video> só nasce no clique. */
+
+.delivery-video {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  background: #111;
+}
+
+.delivery-video .delivery-video__media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: auto;
+  object-fit: contain;
+  background: #111;
+}
+
+.delivery-video__cover {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.delivery-video__cover > .delivery-video__media {
+  position: absolute;
+  inset: 0;
+}
+
+.delivery-video__cover:disabled {
+  cursor: progress;
+}
+
+.delivery-video__play {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.55);
+  font-size: 28px;
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+
+.delivery-video__cover:hover .delivery-video__play,
+.delivery-video__cover:focus-visible .delivery-video__play {
+  transform: scale(1.06);
+  background: rgb(0 0 0 / 0.75);
+}
+
+.delivery-video__cover:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+
+.delivery-video__hint {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.65);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .delivery-video__play {
+    transition: none;
+  }
+}

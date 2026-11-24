@@ -246,6 +246,11 @@
   background: var(--color-muted);
 }
 
+.estudio-media .delivery-video {
+  height: 220px;
+  aspect-ratio: auto;
+}
+
 .estudio-home-links {
   display: grid;
   gap: var(--space-sm);

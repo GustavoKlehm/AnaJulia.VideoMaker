@@ -10,6 +10,8 @@ import {
   fileTypeFor,
   formatBytes,
   isDeliveryToken,
+  isVideoType,
+  pairStills,
   parseDeliveryInput,
   safeFileName,
   todayInBrazil,
@@ -80,14 +82,17 @@ function mapDelivery(req: Request, row: DeliveryWithClient | DeliveryRow, extra:
   }
 }
 
-function mapFile(row: FileRow, urls?: { url: string; download: string }) {
+/** `url` só vem para imagens; `capa` é a URL do "-still" casado com o vídeo; `capaDe` marca o still (estúdio). */
+type FileExtras = { url?: string; capa?: string; capaDe?: string }
+
+function mapFile(row: FileRow, extras: FileExtras = {}) {
   return {
     id: row.id,
     nome: row.nome,
     tipo: row.tipo,
     tamanho: row.tamanho,
     criadoEm: row.created_at,
-    ...(urls ?? {}),
+    ...Object.fromEntries(Object.entries(extras).filter(([, v]) => v !== undefined)),
   }
 }
 
@@ -115,22 +120,93 @@ async function listFiles(db: SupabaseClient, deliveryId: string): Promise<FileRo
   return (data ?? []) as FileRow[]
 }
 
-/** URLs assinadas: uma para assistir, outra que força o download com o nome original. */
-async function signFiles(db: SupabaseClient, files: FileRow[]) {
-  const urls = new Map<string, { url: string; download: string }>()
-  if (files.length === 0) return urls
+/** Até quando as URLs assinadas agora valem (calculado antes de assinar, para nunca passar do real). */
+function signedUntil(): string {
+  return new Date(Date.now() + SIGNED_URL_SECONDS * 1000).toISOString()
+}
+
+/**
+ * Assina só as imagens (fotos e capas dos vídeos). Vídeo nunca vem assinado na lista: a URL dele é pedida
+ * no clique (rota .../url), senão cada vídeo ganharia uma URL nova a cada busca e o navegador baixaria de novo.
+ */
+async function signImages(db: SupabaseClient, files: FileRow[]) {
+  const urls = new Map<string, string>()
+  const images = files.filter((f) => !isVideoType(f.tipo))
+  if (images.length === 0) return urls
   const { data, error } = await bucket(db).createSignedUrls(
-    files.map((f) => f.path),
+    images.map((f) => f.path),
     SIGNED_URL_SECONDS,
   )
   if (error) throw error
+  const byPath = new Map(images.map((f) => [f.path, f]))
   for (const item of data ?? []) {
-    const file = files.find((f) => f.path === item.path)
-    if (file && item.signedUrl) {
-      urls.set(file.id, { url: item.signedUrl, download: `${item.signedUrl}&download=${encodeURIComponent(file.nome)}` })
-    }
+    const file = item.path ? byPath.get(item.path) : undefined
+    if (file && item.signedUrl) urls.set(file.id, item.signedUrl)
   }
   return urls
+}
+
+/** Lista para as telas: vídeos com a capa casada; no link do cliente (`forClient`) os stills casados somem da lista. */
+async function filesForView(db: SupabaseClient, files: FileRow[], forClient: boolean) {
+  const urlsValidasAte = signedUntil()
+  const signed = await signImages(db, files)
+  const stills = pairStills(files)
+  const stillOf = new Map<string, string>()
+  for (const [videoId, still] of stills) {
+    const video = files.find((f) => f.id === videoId)
+    if (video && !stillOf.has(still.id)) stillOf.set(still.id, video.nome)
+  }
+  const arquivos = files
+    .filter((f) => !forClient || !stillOf.has(f.id))
+    // Imagem que não deu para assinar (sumiu do Storage) não aparece para o cliente.
+    .filter((f) => !forClient || isVideoType(f.tipo) || signed.has(f.id))
+    .map((f) => {
+      const still = stills.get(f.id)
+      return mapFile(f, {
+        url: signed.get(f.id),
+        capa: still ? signed.get(still.id) : undefined,
+        capaDe: forClient ? undefined : stillOf.get(f.id),
+      })
+    })
+  return { arquivos, urlsValidasAte }
+}
+
+type UrlMode = 'assistir' | 'baixar'
+
+function parseUrlMode(raw: unknown): UrlMode | null {
+  return raw === 'assistir' || raw === 'baixar' ? raw : null
+}
+
+/** Uma URL só, gerada no clique: para assistir, ou forçando o download com o nome original. */
+async function signOne(db: SupabaseClient, file: FileRow, mode: UrlMode) {
+  const validaAte = signedUntil()
+  const { data, error } = await bucket(db).createSignedUrl(
+    file.path,
+    SIGNED_URL_SECONDS,
+    mode === 'baixar' ? { download: file.nome } : undefined,
+  )
+  if (error) throw error
+  return { url: data.signedUrl, validaAte }
+}
+
+async function loadFile(db: SupabaseClient, res: Response, deliveryId: string, rawFileId: unknown): Promise<FileRow | null> {
+  const fileId = String(rawFileId)
+  if (!UUID.test(fileId)) {
+    res.status(400).json({ error: 'Arquivo inválido.' })
+    return null
+  }
+  const { data, error } = await db
+    .from('portal_delivery_files')
+    .select('*')
+    .eq('id', fileId)
+    .eq('delivery_id', deliveryId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) {
+    res.status(404).json({ error: 'Esse arquivo não existe.' })
+    return null
+  }
+  return data as FileRow
 }
 
 async function removeObjects(db: SupabaseClient, paths: string[]) {
@@ -239,13 +315,31 @@ async function getDelivery(req: Request, res: Response) {
     const delivery = await loadDelivery(db, res, req.params.id)
     if (!delivery) return
     const files = await listFiles(db, delivery.id)
-    const urls = await signFiles(db, files)
-    res.json({
-      entrega: mapDelivery(req, delivery, { arquivos: files.length }),
-      arquivos: files.map((f) => mapFile(f, urls.get(f.id))),
-    })
+    const { arquivos, urlsValidasAte } = await filesForView(db, files, false)
+    res.json({ entrega: mapDelivery(req, delivery, { arquivos: files.length }), arquivos, urlsValidasAte })
   } catch (cause) {
     fail(res, cause, 'Não deu para abrir a entrega.')
+  }
+}
+
+/** URL de um arquivo, pedida no clique (assistir ou baixar). */
+async function getFileUrl(req: Request, res: Response) {
+  if (!(await authorize(req, res))) return
+  const mode = parseUrlMode(req.query.modo)
+  if (!mode) {
+    res.status(400).json({ error: 'Use modo=assistir ou modo=baixar.' })
+    return
+  }
+  try {
+    const db = getSupabase()
+    const delivery = await loadDelivery(db, res, req.params.id)
+    if (!delivery) return
+    const file = await loadFile(db, res, delivery.id, req.params.fileId)
+    if (!file) return
+    res.set('Cache-Control', 'no-store')
+    res.json(await signOne(db, file, mode))
+  } catch (cause) {
+    fail(res, cause, 'Não deu para abrir o arquivo.')
   }
 }
 
@@ -392,23 +486,8 @@ async function deleteFile(req: Request, res: Response) {
     const db = getSupabase()
     const delivery = await loadDelivery(db, res, req.params.id)
     if (!delivery) return
-    const fileId = String(req.params.fileId)
-    if (!UUID.test(fileId)) {
-      res.status(400).json({ error: 'Arquivo inválido.' })
-      return
-    }
-    const { data, error } = await db
-      .from('portal_delivery_files')
-      .select('*')
-      .eq('id', fileId)
-      .eq('delivery_id', delivery.id)
-      .maybeSingle()
-    if (error) throw error
-    if (!data) {
-      res.status(404).json({ error: 'Esse arquivo não existe.' })
-      return
-    }
-    const file = data as FileRow
+    const file = await loadFile(db, res, delivery.id, req.params.fileId)
+    if (!file) return
     await removeObjects(db, [file.path])
     const { error: deleteError } = await db.from('portal_delivery_files').delete().eq('id', file.id)
     if (deleteError) throw deleteError
@@ -432,6 +511,7 @@ export function deliveryAdminRouter(): Router {
   router.post('/entregas/:id/arquivos/envio', run(startUpload))
   router.post('/entregas/:id/arquivos', run(finishUpload))
   router.delete('/entregas/:id/arquivos/:fileId', run(deleteFile))
+  router.get('/entregas/:id/arquivos/:fileId/url', run(getFileUrl))
   router.get('/clientes/:slug/entregas', run(listForClient))
   router.post('/clientes/:slug/entregas', run(createDelivery))
 
@@ -442,52 +522,93 @@ export function deliveryAdminRouter(): Router {
 // Público (/api/entregas): o link que o cliente recebe, e a limpeza diária
 // ---------------------------------------------------------------------------
 
-async function publicView(req: Request, res: Response) {
+type OpenDelivery = { delivery: DeliveryWithClient; cliente: { nome: string; cores: { principal: string; secundaria: string } } }
+
+/** Abre a entrega pelo token do link; responde 404/410 e devolve null se o link não vale. */
+async function openPublic(db: SupabaseClient, res: Response, token: unknown): Promise<OpenDelivery | null> {
+  if (!rejectBadToken(res, token)) return null
+  const { data, error } = await db.from('portal_deliveries').select(`*, ${CLIENT_BRIEF}`).eq('token', token).maybeSingle()
+  if (error) throw error
+  const delivery = data as DeliveryWithClient | null
+  if (!delivery || !delivery.cliente) {
+    res.status(404).json({ error: 'Esse link não existe ou foi trocado por um novo. Peça o link atualizado para a Ana.' })
+    return null
+  }
+  const estado = deliveryState(delivery, todayInBrazil())
+  const cliente = {
+    nome: delivery.cliente.nome,
+    cores: { principal: delivery.cliente.cor_principal, secundaria: delivery.cliente.cor_secundaria },
+  }
+  if (estado !== 'ativa' || !delivery.cliente.ativo) {
+    const expired = estado === 'expirada' || estado === 'apagada'
+    res.status(expired ? 410 : 404).json({
+      error: expired
+        ? 'Esse link venceu. Se ainda precisar dos vídeos, fale com a Ana.'
+        : 'Esse link está desligado no momento. Fale com a Ana.',
+      cliente,
+    })
+    return null
+  }
+  return { delivery, cliente }
+}
+
+/** Token com formato inválido nem chega no banco. */
+function rejectBadToken(res: Response, token: unknown): token is string {
+  if (isDeliveryToken(token)) return true
+  res.status(404).json({ error: 'Esse link não existe.' })
+  return false
+}
+
+function publicHeaders(res: Response) {
   res.set('Cache-Control', 'no-store')
   res.set('X-Robots-Tag', 'noindex')
-  const token = req.params.token
-  if (!isDeliveryToken(token)) {
-    res.status(404).json({ error: 'Esse link não existe.' })
-    return
-  }
+}
+
+async function publicView(req: Request, res: Response) {
+  publicHeaders(res)
+  if (!rejectBadToken(res, req.params.token)) return
   try {
     const db = getSupabase()
-    const { data, error } = await db.from('portal_deliveries').select(`*, ${CLIENT_BRIEF}`).eq('token', token).maybeSingle()
-    if (error) throw error
-    const delivery = data as DeliveryWithClient | null
-    if (!delivery || !delivery.cliente) {
-      res.status(404).json({ error: 'Esse link não existe ou foi trocado por um novo. Peça o link atualizado para a Ana.' })
-      return
-    }
-    const estado = deliveryState(delivery, todayInBrazil())
-    const cliente = {
-      nome: delivery.cliente.nome,
-      cores: { principal: delivery.cliente.cor_principal, secundaria: delivery.cliente.cor_secundaria },
-    }
-    if (estado !== 'ativa' || !delivery.cliente.ativo) {
-      const expired = estado === 'expirada' || estado === 'apagada'
-      res.status(expired ? 410 : 404).json({
-        error: expired
-          ? 'Esse link venceu. Se ainda precisar dos vídeos, fale com a Ana.'
-          : 'Esse link está desligado no momento. Fale com a Ana.',
-        cliente,
-      })
-      return
-    }
+    const open = await openPublic(db, res, req.params.token)
+    if (!open) return
+    const { delivery, cliente } = open
     const files = await listFiles(db, delivery.id)
-    const urls = await signFiles(db, files)
+    const { arquivos, urlsValidasAte } = await filesForView(db, files, true)
     res.json({
       entrega: {
         titulo: delivery.titulo,
         descricao: delivery.descricao,
         dataEvento: delivery.data_evento,
         expiraEm: delivery.expira_em,
+        criadaEm: delivery.created_at,
       },
       cliente,
-      arquivos: files.filter((f) => urls.has(f.id)).map((f) => mapFile(f, urls.get(f.id))),
+      arquivos,
+      urlsValidasAte,
     })
   } catch (cause) {
     fail(res, cause, 'Não deu para abrir a entrega agora. Tente de novo em instantes.')
+  }
+}
+
+/** URL de um arquivo do link, gerada só quando o cliente clica em assistir ou baixar. */
+async function publicFileUrl(req: Request, res: Response) {
+  publicHeaders(res)
+  const mode = parseUrlMode(req.query.modo)
+  if (!mode) {
+    res.status(400).json({ error: 'Use modo=assistir ou modo=baixar.' })
+    return
+  }
+  if (!rejectBadToken(res, req.params.token)) return
+  try {
+    const db = getSupabase()
+    const open = await openPublic(db, res, req.params.token)
+    if (!open) return
+    const file = await loadFile(db, res, open.delivery.id, req.params.fileId)
+    if (!file) return
+    res.json(await signOne(db, file, mode))
+  } catch (cause) {
+    fail(res, cause, 'Não deu para abrir o arquivo agora. Tente de novo em instantes.')
   }
 }
 
@@ -533,6 +654,9 @@ export function deliveryPublicRouter(): Router {
   })
   router.get('/:token', (req, res) => {
     void publicView(req, res)
+  })
+  router.get('/:token/arquivos/:fileId/url', (req, res) => {
+    void publicFileUrl(req, res)
   })
   return router
 }

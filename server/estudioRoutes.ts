@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import { isAdminToken } from './adminAuth.js'
 import { getSupabase } from './supabase.js'
 import {
   mapStudioMember,
@@ -15,8 +16,7 @@ async function requireAdmin(req: Request, res: Response): Promise<boolean> {
   }
 
   try {
-    const { data, error } = await getSupabase().auth.getUser(token)
-    if (error || data.user?.app_metadata?.role !== 'admin') {
+    if (!(await isAdminToken(token))) {
       res.status(403).json({ error: 'Essa chave não abre o estúdio.' })
       return false
     }

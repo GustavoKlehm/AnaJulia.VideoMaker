@@ -29,6 +29,7 @@ describe('rotas de entrega', () => {
       ['GET', '/api/portal/entregas'],
       ['POST', '/api/portal/clientes/soul-circo/entregas'],
       ['POST', '/api/portal/entregas/00000000-0000-0000-0000-000000000000/arquivos/envio'],
+      ['GET', '/api/portal/entregas/00000000-0000-0000-0000-000000000000/arquivos/00000000-0000-0000-0000-000000000000/url?modo=baixar'],
     ] as const) {
       const response = await fetch(`${baseUrl}${path}`, { method })
       expect(response.status).toBe(401)
@@ -39,6 +40,14 @@ describe('rotas de entrega', () => {
     const response = await fetch(`${baseUrl}/api/entregas/curto`)
     expect(response.status).toBe(404)
     expect(response.headers.get('cache-control')).toBe('no-store')
+  })
+
+  it('URL de arquivo do link: pede o modo e não abre token inválido', async () => {
+    const semModo = await fetch(`${baseUrl}/api/entregas/AAAAAAAAAAAAAAAAAAAAAAAA/arquivos/x/url`)
+    expect(semModo.status).toBe(400)
+    const tokenRuim = await fetch(`${baseUrl}/api/entregas/curto/arquivos/x/url?modo=assistir`)
+    expect(tokenRuim.status).toBe(404)
+    expect(tokenRuim.headers.get('cache-control')).toBe('no-store')
   })
 
   it('limpeza só roda com o segredo do cron', async () => {

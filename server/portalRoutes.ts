@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { normalizePhone } from '../src/shared/phone.js'
 import { parsePlan } from '../src/shared/portalPlan.js'
 import { groupReviews, itemReviewState, summarize, type ReviewRow } from '../src/shared/portalStatus.js'
+import { isAdminToken } from './adminAuth.js'
 import { readBearerToken } from './estudioUsers.js'
 import { deactivateContact, ensureContact, resetPin, type ContactRow, type NewAccess } from './portalAccounts.js'
 import { matchesSyncToken, parseClient, parseContact, parseSlugParam } from './portalInput.js'
@@ -48,8 +49,7 @@ export async function authorize(req: Request, res: Response, onlyExpx = false): 
     return null
   }
   try {
-    const { data, error } = await getSupabase().auth.getUser(token)
-    if (error || data.user?.app_metadata?.role !== 'admin') {
+    if (!(await isAdminToken(token))) {
       res.status(403).json({ error: 'Essa chave não abre a área de clientes.' })
       return null
     }

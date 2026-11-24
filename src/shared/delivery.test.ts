@@ -7,7 +7,9 @@ import {
   fileTypeFor,
   formatBytes,
   isDeliveryToken,
+  isDeliveryLive,
   isIsoDate,
+  pairStills,
   parseDeliveryInput,
   safeFileName,
   todayInBrazil,
@@ -97,5 +99,33 @@ describe('link e mensagem', () => {
     expect(msg).toContain('https://x/entrega/abc')
     expect(msg).toContain('31/12/2026')
     expect(deliveryMessage({ titulo: 'Festa', link: 'l', expiraEm: null })).not.toContain('no ar até')
+  })
+})
+
+describe('capas e atualização', () => {
+  const f = (id: string, nome: string, tipo: string) => ({ id, nome, tipo })
+
+  it('casa o vídeo com o still de mesmo nome', () => {
+    const files = [
+      f('v1', 'IMG_1234.MOV', 'video/quicktime'),
+      f('s1', 'IMG_1234-still.jpeg', 'image/jpeg'),
+      f('v2', 'Festa 02.mp4', 'video/mp4'),
+      f('s2', 'festa 02_still.JPG', 'image/jpeg'),
+      f('v3', 'sem-capa.mov', 'video/quicktime'),
+      f('p1', 'foto.jpeg', 'image/jpeg'),
+      f('s9', 'orfao-still.jpeg', 'image/jpeg'),
+    ]
+    const pairs = pairStills(files)
+    expect(pairs.get('v1')?.id).toBe('s1')
+    expect(pairs.get('v2')?.id).toBe('s2')
+    expect(pairs.has('v3')).toBe(false)
+    expect(pairs.size).toBe(2)
+  })
+
+  it('atualiza sozinha só no dia do evento ou nas primeiras 24 h', () => {
+    const now = new Date('2026-11-23T15:00:00Z')
+    expect(isDeliveryLive({ dataEvento: '2026-11-23', criadaEm: '2026-11-01T00:00:00Z' }, now)).toBe(true)
+    expect(isDeliveryLive({ dataEvento: null, criadaEm: '2026-11-23T01:00:00Z' }, now)).toBe(true)
+    expect(isDeliveryLive({ dataEvento: '2026-11-20', criadaEm: '2026-11-20T10:00:00Z' }, now)).toBe(false)
   })
 })

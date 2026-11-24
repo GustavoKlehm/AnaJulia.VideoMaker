@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { DownloadSimple, ShareFat } from '@phosphor-icons/react'
+import { ArrowClockwise, DownloadSimple, ShareFat } from '@phosphor-icons/react'
+import { DeliveryVideo } from '../../components/DeliveryVideo'
 import { portalTheme } from '../../lib/portalTheme'
-import { formatBytes, formatDateBr, isVideoType } from '../../shared/delivery'
+import { signedUrl, stableUrl } from '../../lib/signedUrlCache'
+import { formatBytes, formatDateBr, isDeliveryLive, isVideoType } from '../../shared/delivery'
 import '../cliente/portal.css'
 import './entrega.css'
 
-type PublicFile = { id: string; nome: string; tipo: string; tamanho: number; criadoEm: string; url: string; download: string }
+/** `url` só vem nas fotos; vídeo traz só a `capa` (o "-still"). A URL do vídeo é pedida no clique. */
+type PublicFile = { id: string; nome: string; tipo: string; tamanho: number; criadoEm: string; url?: string; capa?: string }
 
 type PublicDelivery = {
-  entrega: { titulo: string; descricao: string; dataEvento: string | null; expiraEm: string | null }
+  entrega: { titulo: string; descricao: string; dataEvento: string | null; expiraEm: string | null; criadaEm: string }
   cliente: { nome: string; cores: { principal: string; secundaria: string } }
   arquivos: PublicFile[]
+  urlsValidasAte: string
 }
 
 type Failure = { message: string; cliente?: PublicDelivery['cliente'] }
@@ -26,16 +30,37 @@ async function fetchDelivery(token: string): Promise<PublicDelivery> {
     const failure: Failure = { message: payload.error ?? 'Não deu para abrir a entrega agora.', cliente: payload.cliente }
     throw failure
   }
-  return payload as PublicDelivery
+  const data = payload as PublicDelivery
+  // Reaproveita as URLs das fotos e capas que ainda valem: o mesmo `src` não é baixado de novo.
+  return {
+    ...data,
+    arquivos: data.arquivos.map((f) => ({
+      ...f,
+      url: f.url ? stableUrl(`${f.id}:imagem`, f.url, data.urlsValidasAte) : undefined,
+      capa: f.capa ? stableUrl(`${f.id}:capa`, f.capa, data.urlsValidasAte) : undefined,
+    })),
+  }
 }
 
-/** Mantém os arquivos que já estavam na tela (sem trocar a URL e recarregar o vídeo) e acrescenta os novos. */
+type UrlMode = 'assistir' | 'baixar'
+
+/** URL de um arquivo, gerada no clique e guardada enquanto vale (clicar de novo não gera outra). */
+function fileUrl(token: string, fileId: string, mode: UrlMode): Promise<string> {
+  return signedUrl(`${fileId}:${mode}`, async () => {
+    const response = await fetch(`/api/entregas/${token}/arquivos/${fileId}/url?modo=${mode}`, { cache: 'no-store' })
+    const payload = (await response.json().catch(() => ({}))) as { url?: string; validaAte?: string; error?: string }
+    if (!response.ok || !payload.url || !payload.validaAte) throw new Error(payload.error ?? 'Não deu para abrir o arquivo.')
+    return { url: payload.url, validaAte: payload.validaAte }
+  })
+}
+
+/** Mantém os arquivos que já estavam na tela (sem trocar a URL e recarregar) e acrescenta os novos. */
 function mergeFiles(current: PublicFile[], next: PublicFile[]): { files: PublicFile[]; added: number } {
   const known = new Map(current.map((f) => [f.id, f]))
   let added = 0
   const files = next.map((f) => {
     const old = known.get(f.id)
-    if (old) return old
+    if (old) return { ...f, url: old.url ?? f.url, capa: old.capa ?? f.capa }
     added += 1
     return f
   })
@@ -46,9 +71,11 @@ export function EntregaPage({ token }: { token: string }) {
   const [data, setData] = useState<PublicDelivery | null>(null)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [notice, setNotice] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
 
   const refresh = useCallback(
-    async (initial: boolean) => {
+    async (mode: 'inicial' | 'auto' | 'manual') => {
+      if (mode === 'manual') setRefreshing(true)
       try {
         const next = await fetchDelivery(token)
         setFailure(null)
@@ -56,33 +83,34 @@ export function EntregaPage({ token }: { token: string }) {
           if (!current) return next
           const { files, added } = mergeFiles(current.arquivos, next.arquivos)
           if (added > 0) setNotice(added === 1 ? 'Chegou 1 arquivo novo.' : `Chegaram ${added} arquivos novos.`)
+          else if (mode === 'manual') setNotice('Nada novo por enquanto.')
           return { ...next, arquivos: files }
         })
       } catch (cause) {
-        if (initial || (cause as Failure).cliente) {
+        if (mode !== 'auto' || (cause as Failure).cliente) {
           setFailure(cause && typeof cause === 'object' && 'message' in cause ? (cause as Failure) : { message: 'Sem conexão.' })
           if ((cause as Failure).cliente) setData(null)
         }
+      } finally {
+        if (mode === 'manual') setRefreshing(false)
       }
     },
     [token],
   )
 
   useEffect(() => {
-    void refresh(true)
-    // Durante o evento a Ana vai subindo os stories: a página confere de tempos em tempos.
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refresh(false)
-    }, REFRESH_MS)
-    function onVisible() {
-      if (document.visibilityState === 'visible') void refresh(false)
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    return () => {
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisible)
-    }
+    void refresh('inicial')
   }, [refresh])
+
+  // Só confere sozinha no dia do evento / primeiras 24 h (a Ana subindo stories). Trocar de aba não rebusca nada.
+  const live = data ? isDeliveryLive(data.entrega) : false
+  useEffect(() => {
+    if (!live) return
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh('auto')
+    }, REFRESH_MS)
+    return () => window.clearInterval(timer)
+  }, [live, refresh])
 
   useEffect(() => {
     const meta = document.createElement('meta')
@@ -120,7 +148,16 @@ export function EntregaPage({ token }: { token: string }) {
           </div>
         ) : null}
 
-        {data ? <DeliveryView data={data} notice={notice} /> : null}
+        {data ? (
+          <DeliveryView
+            data={data}
+            token={token}
+            notice={notice}
+            live={live}
+            refreshing={refreshing}
+            onRefresh={() => void refresh('manual')}
+          />
+        ) : null}
       </main>
 
       <footer className="portal-footer">
@@ -130,7 +167,16 @@ export function EntregaPage({ token }: { token: string }) {
   )
 }
 
-function DeliveryView({ data, notice }: { data: PublicDelivery; notice: string }) {
+type DeliveryViewProps = {
+  data: PublicDelivery
+  token: string
+  notice: string
+  live: boolean
+  refreshing: boolean
+  onRefresh: () => void
+}
+
+function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: DeliveryViewProps) {
   const { entrega, arquivos } = data
   const videos = arquivos.filter((f) => isVideoType(f.tipo)).length
   const fotos = arquivos.length - videos
@@ -149,6 +195,9 @@ function DeliveryView({ data, notice }: { data: PublicDelivery; notice: string }
           {counts.length ? counts.join(' e ') : 'Os arquivos ainda estão chegando.'}
           {entrega.expiraEm ? ` · disponível até ${formatDateBr(entrega.expiraEm)}` : ''}
         </p>
+        <button className="portal-link-button" type="button" disabled={refreshing} onClick={onRefresh}>
+          <ArrowClockwise aria-hidden="true" /> {refreshing ? 'Atualizando…' : 'Atualizar'}
+        </button>
       </div>
 
       <p className="portal-saved" role="status">
@@ -156,18 +205,22 @@ function DeliveryView({ data, notice }: { data: PublicDelivery; notice: string }
       </p>
 
       {arquivos.length === 0 ? (
-        <p className="portal-muted">Assim que a Ana enviar, os vídeos aparecem aqui. A página se atualiza sozinha.</p>
+        <p className="portal-muted">
+          {live
+            ? 'Assim que a Ana enviar, os vídeos aparecem aqui. A página se atualiza sozinha.'
+            : 'Assim que a Ana enviar, os vídeos aparecem aqui. Toque em “Atualizar” para conferir.'}
+        </p>
       ) : (
         <ul className="entrega-grid">
           {arquivos.map((file) => (
-            <FileCard key={file.id} file={file} />
+            <FileCard key={file.id} file={file} token={token} />
           ))}
         </ul>
       )}
 
       <p className="portal-muted portal-small">
-        No celular, use “Salvar no celular” para mandar o vídeo direto para a galeria ou para o Instagram. No computador,
-        use “Baixar”.
+        Toque no vídeo para assistir. No celular, use “Salvar no celular” para mandar o vídeo direto para a galeria ou
+        para o Instagram. No computador, use “Baixar original”.
       </p>
     </>
   )
@@ -184,8 +237,9 @@ function canShareFiles(): boolean {
   }
 }
 
-function FileCard({ file }: { file: PublicFile }) {
+function FileCard({ file, token }: { file: PublicFile; token: string }) {
   const [shareState, setShareState] = useState<'idle' | 'preparing' | 'ready' | 'error'>('idle')
+  const [downloadState, setDownloadState] = useState<'idle' | 'opening' | 'error'>('idle')
   const prepared = useRef<File | null>(null)
   const [shareable] = useState(() => canShareFiles() && file.tamanho <= SHARE_LIMIT_BYTES)
   const video = isVideoType(file.tipo)
@@ -194,7 +248,7 @@ function FileCard({ file }: { file: PublicFile }) {
   async function prepare() {
     setShareState('preparing')
     try {
-      const response = await fetch(file.url)
+      const response = await fetch(await fileUrl(token, file.id, 'assistir'))
       if (!response.ok) throw new Error(String(response.status))
       const blob = await response.blob()
       const shared = new File([blob], file.nome, { type: file.tipo })
@@ -215,12 +269,23 @@ function FileCard({ file }: { file: PublicFile }) {
     }
   }
 
+  // A URL de download (original, com o nome do arquivo) só é gerada no clique.
+  async function download() {
+    setDownloadState('opening')
+    try {
+      window.location.assign(await fileUrl(token, file.id, 'baixar'))
+      setDownloadState('idle')
+    } catch {
+      setDownloadState('error')
+    }
+  }
+
   return (
     <li className="entrega-card">
       {video ? (
-        <video src={file.url} controls playsInline preload="metadata" aria-label={file.nome} />
+        <DeliveryVideo nome={file.nome} capa={file.capa} load={() => fileUrl(token, file.id, 'assistir')} />
       ) : (
-        <img src={file.url} alt={file.nome} loading="lazy" />
+        <img src={file.url} alt={file.nome} loading="lazy" decoding="async" />
       )}
       <div className="entrega-card__body">
         <p className="entrega-card__name">{file.nome}</p>
@@ -242,12 +307,21 @@ function FileCard({ file }: { file: PublicFile }) {
               </button>
             )
           ) : null}
-          <a className={`portal-button${shareable ? ' portal-button--ghost' : ''}`} href={file.download}>
-            <DownloadSimple aria-hidden="true" /> Baixar
-          </a>
+          <button
+            className={`portal-button${shareable ? ' portal-button--ghost' : ''}`}
+            type="button"
+            disabled={downloadState === 'opening'}
+            onClick={() => void download()}
+          >
+            <DownloadSimple aria-hidden="true" />{' '}
+            {downloadState === 'opening' ? 'Abrindo…' : video ? 'Baixar original' : 'Baixar'}
+          </button>
         </div>
         {shareState === 'error' ? (
-          <p className="portal-error portal-small">Não deu para preparar. Use “Baixar”.</p>
+          <p className="portal-error portal-small">Não deu para preparar. Use “Baixar original”.</p>
+        ) : null}
+        {downloadState === 'error' ? (
+          <p className="portal-error portal-small">Não deu para baixar agora. Tente de novo em instantes.</p>
         ) : null}
       </div>
     </li>

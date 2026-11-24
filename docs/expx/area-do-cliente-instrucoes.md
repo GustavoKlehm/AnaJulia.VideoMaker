@@ -463,3 +463,6 @@ Se um dia o ExPx quiser criar entregas, as rotas aceitam o mesmo `EXPX_SYNC_TOKE
 - `POST /api/portal/clientes/<slug>/entregas` com `{ "titulo": "...", "dataEvento": "AAAA-MM-DD", "expiraEm": "AAAA-MM-DD" }` → devolve `entrega.id` e `entrega.link`.
 - Para cada arquivo: `POST /api/portal/entregas/<id>/arquivos/envio` `{ nome, tamanho }` → `PUT` do arquivo na `signedUrl` com `content-type: tipo` → `POST /api/portal/entregas/<id>/arquivos` `{ path, nome }`.
 - O link e a validade aparecem na resposta; o cliente precisa existir antes (mesmo `slug`).
+- No `PUT`, mande também `cache-control: max-age=31536000` (o arquivo nunca muda; economiza banda do Supabase).
+- Para a capa de um vídeo aparecer, suba junto uma foto com o mesmo nome + `-still` (ex.: `IMG_1234.MOV` e `IMG_1234-still.jpeg`).
+- Desde 2026-11-23, `GET /api/portal/entregas/<id>` **não traz mais** `url`/`download` dos vídeos (só `url` das fotos e `capa` dos vídeos). Para assistir ou baixar: `GET /api/portal/entregas/<id>/arquivos/<fileId>/url?modo=assistir|baixar` → `{ url, validaAte }`.
