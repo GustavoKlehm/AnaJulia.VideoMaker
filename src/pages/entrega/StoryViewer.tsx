@@ -43,6 +43,8 @@ export function StoryViewer({ items, startIndex, token, onClose }: StoryViewerPr
   const [buffering, setBuffering] = useState(false)
   const [photoReady, setPhotoReady] = useState(false)
   const [failed, setFailed] = useState(false)
+  // Compartilhando o item: segura o avanço automático para o item não trocar no meio.
+  const [sharing, setSharing] = useState(false)
 
   const videos = useRef(new Map<string, HTMLVideoElement>())
   const fill = useRef<HTMLSpanElement | null>(null)
@@ -52,7 +54,7 @@ export function StoryViewer({ items, startIndex, token, onClose }: StoryViewerPr
 
   const current = items[index]
   const isVideo = isVideoType(current.file.tipo)
-  const running = !paused && !held
+  const running = !paused && !held && !sharing
   const section = items.filter((item) => item.categoria === current.categoria)
   const positionInSection = section.indexOf(current)
 
@@ -356,7 +358,7 @@ export function StoryViewer({ items, startIndex, token, onClose }: StoryViewerPr
           </div>
         </div>
 
-        <ViewerActions key={current.file.id} file={current.file} token={token} />
+        <ViewerActions key={current.file.id} file={current.file} token={token} onBusyChange={setSharing} />
       </div>
 
       <button className="story-viewer__nav story-viewer__nav--next" type="button" aria-label="Próximo" onClick={goNext}>
@@ -367,8 +369,16 @@ export function StoryViewer({ items, startIndex, token, onClose }: StoryViewerPr
 }
 
 /** Baixar e Compartilhar do item na tela (estado próprio por item: some ao passar para o próximo). */
-function ViewerActions({ file, token }: { file: PublicFile; token: string }) {
+type ViewerActionsProps = { file: PublicFile; token: string; onBusyChange: (busy: boolean) => void }
+
+function ViewerActions({ file, token, onBusyChange }: ViewerActionsProps) {
   const actions = useFileActions(file, token)
+  const busy = actions.shareBusy
+  useEffect(() => {
+    onBusyChange(busy)
+  }, [busy, onBusyChange])
+  // Trocou de item (ou fechou): libera o avanço.
+  useEffect(() => () => onBusyChange(false), [onBusyChange])
   return (
     <div className="story-viewer__actions">
       <button
@@ -388,9 +398,11 @@ function ViewerActions({ file, token }: { file: PublicFile; token: string }) {
         <ShareNetwork aria-hidden="true" weight={actions.shareState === 'ready' ? 'fill' : 'regular'} /> {actions.shareText}
       </button>
       {actions.shareState === 'copied' ? <p className="story-viewer__note">Link da entrega copiado.</p> : null}
-      {actions.shareState === 'error' || actions.downloadState === 'error' ? (
-        <p className="story-viewer__note">Não deu certo agora. Tente de novo.</p>
+      {actions.shareState === 'ready' ? <p className="story-viewer__note">Pronto! Toque para compartilhar.</p> : null}
+      {actions.shareState === 'error' ? (
+        <p className="story-viewer__note">Não deu para compartilhar este arquivo. Use “Baixar”.</p>
       ) : null}
+      {actions.downloadState === 'error' ? <p className="story-viewer__note">Não deu para baixar agora. Tente de novo.</p> : null}
     </div>
   )
 }

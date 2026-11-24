@@ -76,7 +76,7 @@ export function EntregaFiles({ arquivos, token }: { arquivos: PublicFile[]; toke
   const [density, setDensity] = useDensity()
   const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const groups = groupFiles(arquivos)
-  // Sequência da tela cheia: Stories e depois Reels, na mesma ordem da página.
+  // Sequência da tela cheia: Reels e depois Stories, na mesma ordem da página.
   const sequence: ViewerItem[] = groups.flatMap(({ categoria, items }) => items.map((item) => ({ ...item, categoria })))
 
   function openViewer(fileId: string) {

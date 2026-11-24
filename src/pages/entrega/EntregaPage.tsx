@@ -157,8 +157,8 @@ function DeliveryView({ data, token, notice, live }: DeliveryViewProps) {
   const stories = count('stories')
   const reels = count('reels')
   const counts = [
-    stories ? `${stories} ${stories === 1 ? 'story' : 'stories'}` : '',
     reels ? `${reels} ${reels === 1 ? 'vídeo para Reels' : 'vídeos para Reels'}` : '',
+    stories ? `${stories} ${stories === 1 ? 'story' : 'stories'}` : '',
   ].filter(Boolean)
 
   return (

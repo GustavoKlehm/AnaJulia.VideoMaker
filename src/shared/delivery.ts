@@ -219,8 +219,8 @@ export function isDeliveryLive(
  */
 export type DeliveryCategory = 'stories' | 'reels'
 
-/** Ordem das seções na página do cliente. */
-export const DELIVERY_CATEGORIES: DeliveryCategory[] = ['stories', 'reels']
+/** Ordem das seções na página do cliente (e no estúdio): Reels primeiro, por serem poucos. */
+export const DELIVERY_CATEGORIES: DeliveryCategory[] = ['reels', 'stories']
 
 export const CATEGORY_LABEL: Record<DeliveryCategory, string> = {
   stories: 'Stories',

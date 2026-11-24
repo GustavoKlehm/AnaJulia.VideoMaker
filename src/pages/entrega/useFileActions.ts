@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { fileUrl, type PublicFile } from './entregaApi'
 
 /** Acima disso o "Compartilhar" não carrega o arquivo na memória do aparelho: compartilha o link da entrega. */
@@ -6,13 +6,14 @@ const SHARE_LIMIT_BYTES = 400 * 1024 ** 2
 /** Quantos arquivos preparados ficam guardados (cada vídeo pode ter centenas de MB). */
 const MAX_PREPARED = 2
 
-export type ShareState = 'idle' | 'preparing' | 'ready' | 'copied' | 'error'
+export type ShareState = 'idle' | 'preparing' | 'ready' | 'sharing' | 'copied' | 'error'
 export type DownloadState = 'idle' | 'opening' | 'error'
 
 const SHARE_TEXT: Record<ShareState, string> = {
   idle: 'Compartilhar',
   preparing: 'Preparando…',
   ready: 'Pronto: toque para compartilhar',
+  sharing: 'Compartilhar',
   copied: 'Link copiado',
   error: 'Compartilhar',
 }
@@ -109,6 +110,9 @@ function stillActivated(): boolean {
 export function useFileActions(file: PublicFile, token: string) {
   const [shareState, setShareState] = useState<ShareState>('idle')
   const [downloadState, setDownloadState] = useState<DownloadState>('idle')
+  // Arquivo preparado deste card/item. Fica aqui (e não só no cache compartilhado, que guarda poucos)
+  // para o toque em "Pronto: toque para compartilhar" sempre achar o arquivo e abrir na hora.
+  const readyFile = useRef<File | null>(null)
 
   async function download() {
     setDownloadState('opening')
@@ -120,14 +124,27 @@ export function useFileActions(file: PublicFile, token: string) {
     }
   }
 
-  async function shareFile(shared: File) {
+  /**
+   * Abre o compartilhar com o arquivo. `afterWait`: chamado depois de esperar a preparação, quando o
+   * navegador pode já não considerar o toque; aí a recusa só significa "falta um toque".
+   */
+  async function shareFile(shared: File, afterWait: boolean) {
+    readyFile.current = shared
+    setShareState('sharing')
     try {
       await navigator.share({ files: [shared] })
       setShareState('idle')
     } catch (cause) {
-      // O navegador não considerou mais o toque (preparar demorou): o arquivo está pronto, falta um toque.
-      if (cause instanceof DOMException && cause.name === 'NotAllowedError') setShareState('ready')
-      else setShareState('idle') // cancelou a folha de compartilhamento
+      const name = cause instanceof DOMException ? cause.name : ''
+      if (name === 'AbortError') {
+        setShareState('idle') // fechou a folha de compartilhamento sem escolher
+      } else if (name === 'NotAllowedError' && afterWait) {
+        setShareState('ready')
+      } else {
+        // Recusou mesmo com o toque valendo (ex.: o aparelho não aceita este formato): mostra o erro.
+        console.warn('[entrega] compartilhar falhou', cause)
+        setShareState('error')
+      }
     }
   }
 
@@ -152,9 +169,9 @@ export function useFileActions(file: PublicFile, token: string) {
 
   async function share() {
     // Já preparado: abre o compartilhar ainda dentro do toque (nada de espera antes do navigator.share).
-    const ready = prepared.get(file.id)
+    const ready = readyFile.current ?? prepared.get(file.id)
     if (ready) {
-      await shareFile(ready)
+      await shareFile(ready, false)
       return
     }
     if (!sharesAsFile(file)) {
@@ -170,12 +187,15 @@ export function useFileActions(file: PublicFile, token: string) {
       return
     }
     // Terminou a tempo: abre direto. Se o toque já expirou, o arquivo fica pronto e basta tocar de novo.
-    if (stillActivated()) await shareFile(shared)
+    readyFile.current = shared
+    if (stillActivated()) await shareFile(shared, true)
     else setShareState('ready')
   }
 
   return {
     shareState,
+    /** Preparando, esperando o segundo toque ou com a folha de compartilhamento aberta. */
+    shareBusy: shareState === 'preparing' || shareState === 'ready' || shareState === 'sharing',
     downloadState,
     shareText: SHARE_TEXT[shareState],
     downloadText: downloadState === 'opening' ? 'Abrindo…' : 'Baixar',
