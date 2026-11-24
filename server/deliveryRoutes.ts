@@ -10,7 +10,7 @@ import {
   fileTypeFor,
   formatBytes,
   isDeliveryToken,
-  isVideoCategory,
+  isDeliveryCategory,
   isVideoType,
   parseDeliveryInput,
   safeFileName,
@@ -492,11 +492,11 @@ async function deleteFile(req: Request, res: Response) {
   }
 }
 
-/** Troca a seção de um vídeo (Stories ↔ Reels). Foto fica sempre em Fotos. */
+/** Troca a seção de um vídeo (Stories ↔ Reels). Foto fica sempre em Stories. */
 async function updateFile(req: Request, res: Response) {
   if (!(await authorize(req, res))) return
   const categoria = (req.body as { categoria?: unknown } | undefined)?.categoria
-  if (!isVideoCategory(categoria)) {
+  if (!isDeliveryCategory(categoria)) {
     res.status(400).json({ error: 'Use categoria "stories" ou "reels".' })
     return
   }
@@ -507,7 +507,7 @@ async function updateFile(req: Request, res: Response) {
     const file = await loadFile(db, res, delivery.id, req.params.fileId)
     if (!file) return
     if (!isVideoType(file.tipo)) {
-      res.status(400).json({ error: 'Foto fica sempre em Fotos.' })
+      res.status(400).json({ error: 'Foto fica sempre em Stories.' })
       return
     }
     const { data, error } = await db

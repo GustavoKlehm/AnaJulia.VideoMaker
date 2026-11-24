@@ -7,7 +7,7 @@ export type PublicFile = {
   nome: string
   tipo: string
   tamanho: number
-  /** Seção em que aparece: Fotos, Stories ou Vídeos para Reels. */
+  /** Seção em que aparece: Stories (fotos e vídeos, na ordem de envio) ou Vídeos para Reels. */
   categoria: DeliveryCategory
   criadoEm: string
   url?: string

@@ -464,6 +464,6 @@ Se um dia o ExPx quiser criar entregas, as rotas aceitam o mesmo `EXPX_SYNC_TOKE
 - Para cada arquivo: `POST /api/portal/entregas/<id>/arquivos/envio` `{ nome, tamanho }` → `PUT` do arquivo na `signedUrl` com **exatamente** os `headers` da resposta → `POST /api/portal/entregas/<id>/arquivos` `{ path, nome }`.
 - O link e a validade aparecem na resposta; o cliente precisa existir antes (mesmo `slug`).
 - Desde 2026-11-23 os arquivos vão para o Cloudflare R2 (até ~5 GB por arquivo). Os `headers` da resposta (`content-type` e `cache-control`) fazem parte da assinatura: sem eles o `PUT` é recusado.
-- No registro (`POST .../arquivos`), mande `categoria`: `stories` ou `reels` para vídeo (padrão `stories`); imagem vai sempre para Fotos. Para trocar depois: `PATCH /api/portal/entregas/<id>/arquivos/<fileId>` `{ "categoria": "reels" }`.
+- No registro (`POST .../arquivos`), mande `categoria`: `stories` ou `reels` para vídeo (padrão `stories`); imagem vai sempre para Stories, na ordem de envio junto com os vídeos. Para trocar depois: `PATCH /api/portal/entregas/<id>/arquivos/<fileId>` `{ "categoria": "reels" }`.
 - A capa dos vídeos é gerada pelo estúdio (botão "Gerar capas"); quem envia pelo ExPx não precisa mandar capa.
 - Desde 2026-11-23, `GET /api/portal/entregas/<id>` **não traz mais** `url`/`download` dos vídeos (só `url` das fotos, `capa` e `categoria` dos vídeos). Para assistir ou baixar: `GET /api/portal/entregas/<id>/arquivos/<fileId>/url?modo=assistir|baixar` → `{ url, validaAte }`.

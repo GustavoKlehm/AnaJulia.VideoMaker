@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import type { DeliveryCategory, DeliveryInput, DeliveryState, VideoCategory } from '../shared/delivery'
+import type { DeliveryCategory, DeliveryInput, DeliveryState } from '../shared/delivery'
 import { estudioRequest } from './estudioApi'
 
 /** Entregas de vídeo: mesmas rotas que o ExPx pode usar (/api/portal), chamadas com a sessão do estúdio. */
@@ -24,7 +24,7 @@ export type DeliveryFile = {
   nome: string
   tipo: string
   tamanho: number
-  /** Seção na página do cliente: foto, stories ou reels. */
+  /** Seção na página do cliente: stories (fotos e vídeos) ou reels. */
   categoria: DeliveryCategory
   criadoEm: string
   /** Só nas fotos. A URL dos vídeos é pedida no clique (getDeliveryFileUrl). */
@@ -125,7 +125,7 @@ export async function uploadDeliveryFile(
   id: string,
   file: File,
   onProgress: (fraction: number) => void,
-  options: { categoria?: VideoCategory; signal?: AbortSignal } = {},
+  options: { categoria?: DeliveryCategory; signal?: AbortSignal } = {},
 ): Promise<DeliveryFile> {
   const { categoria, signal } = options
   const start = await estudioRequest<{ path: string; signedUrl: string; tipo: string; headers?: Record<string, string> }>(
@@ -136,14 +136,14 @@ export async function uploadDeliveryFile(
   await putWithProgress(start.signedUrl, file, start.headers ?? { 'content-type': start.tipo }, onProgress, signal)
   const done = await estudioRequest<{ arquivo: DeliveryFile }>(`/api/portal/entregas/${id}/arquivos`, session, {
     method: 'POST',
-    // Vídeo vai para a seção escolhida (Stories ou Reels); foto vai sempre para Fotos (o servidor decide).
+    // Vídeo vai para a seção escolhida (Stories ou Reels); foto vai sempre para Stories (o servidor decide).
     body: JSON.stringify({ path: start.path, nome: file.name, categoria }),
   })
   return done.arquivo
 }
 
 /** Troca um vídeo de seção (Stories ↔ Reels). */
-export function updateDeliveryFile(session: Session, id: string, fileId: string, input: { categoria: VideoCategory }) {
+export function updateDeliveryFile(session: Session, id: string, fileId: string, input: { categoria: DeliveryCategory }) {
   return estudioRequest<{ arquivo: DeliveryFile }>(`/api/portal/entregas/${id}/arquivos/${fileId}`, session, {
     method: 'PATCH',
     body: JSON.stringify(input),

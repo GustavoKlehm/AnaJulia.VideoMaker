@@ -112,14 +112,15 @@ describe('atualização automática', () => {
 })
 
 describe('agrupamento', () => {
-  it('imagem é sempre foto', () => {
-    expect(categoryFor('image/jpeg', 'reels')).toBe('foto')
+  it('foto vai sempre para Stories, junto com os vídeos', () => {
+    expect(categoryFor('image/jpeg', 'reels')).toBe('stories')
+    expect(categoryFor('image/jpeg', undefined)).toBe('stories')
   })
 
   it('vídeo usa a categoria escolhida e cai em Stories sem escolha', () => {
     expect(categoryFor('video/quicktime', 'reels')).toBe('reels')
     expect(categoryFor('video/mp4', 'stories')).toBe('stories')
     expect(categoryFor('video/mp4', undefined)).toBe('stories')
-    expect(categoryFor('video/mp4', 'foto')).toBe('stories')
+    expect(categoryFor('video/mp4', 'qualquer')).toBe('stories')
   })
 })

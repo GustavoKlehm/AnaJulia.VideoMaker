@@ -568,7 +568,7 @@
   padding: 0 12px;
 }
 
-/* Entregas: escolha da seção dos vídeos no envio e grupos (Fotos / Stories / Reels) como o cliente vê. */
+/* Entregas: escolha da seção dos vídeos no envio e grupos (Stories / Reels) como o cliente vê. */
 .estudio-category-choice {
   display: flex;
   flex-wrap: wrap;

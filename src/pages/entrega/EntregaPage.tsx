@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { ArrowClockwise } from '@phosphor-icons/react'
 import { portalTheme } from '../../lib/portalTheme'
 import { stableUrl } from '../../lib/signedUrlCache'
-import { formatDateBr, isDeliveryLive, isVideoType } from '../../shared/delivery'
+import { formatDateBr, isDeliveryLive } from '../../shared/delivery'
 import { EntregaFiles } from './EntregaFiles'
 import type { PublicFile } from './entregaApi'
 import '../cliente/portal.css'
@@ -163,12 +163,10 @@ type DeliveryViewProps = {
 function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: DeliveryViewProps) {
   const { entrega, arquivos } = data
   const count = (categoria: PublicFile['categoria']) =>
-    arquivos.filter((f) => (f.categoria ?? (isVideoType(f.tipo) ? 'stories' : 'foto')) === categoria).length
-  const fotos = count('foto')
+    arquivos.filter((f) => (f.categoria ?? 'stories') === categoria).length
   const stories = count('stories')
   const reels = count('reels')
   const counts = [
-    fotos ? `${fotos} ${fotos === 1 ? 'foto' : 'fotos'}` : '',
     stories ? `${stories} ${stories === 1 ? 'story' : 'stories'}` : '',
     reels ? `${reels} ${reels === 1 ? 'vídeo para Reels' : 'vídeos para Reels'}` : '',
   ].filter(Boolean)

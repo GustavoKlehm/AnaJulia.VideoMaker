@@ -213,33 +213,32 @@ export function isDeliveryLive(
 // Agrupamento dos arquivos para o cliente
 // ---------------------------------------------------------------------------
 
-/** Foto vai sempre para "Fotos"; vídeo, a Ana diz no estúdio se é Stories ou Reels. */
-export type DeliveryCategory = 'foto' | 'stories' | 'reels'
-
-export type VideoCategory = Exclude<DeliveryCategory, 'foto'>
+/**
+ * Duas seções: Stories (fotos e vídeos misturados, na ordem em que a Ana subiu, como ela postou) e
+ * Vídeos para Reels. Foto vai sempre para Stories; vídeo, a Ana diz no estúdio.
+ */
+export type DeliveryCategory = 'stories' | 'reels'
 
 /** Ordem das seções na página do cliente. */
-export const DELIVERY_CATEGORIES: DeliveryCategory[] = ['foto', 'stories', 'reels']
+export const DELIVERY_CATEGORIES: DeliveryCategory[] = ['stories', 'reels']
 
 export const CATEGORY_LABEL: Record<DeliveryCategory, string> = {
-  foto: 'Fotos',
   stories: 'Stories',
   reels: 'Vídeos para Reels',
 }
 
-/** Nome de cada item na tela (o nome do arquivo da câmera não diz nada): "Foto 2", "Story 3", "Reel 1". */
+/** Nome de cada item na tela (o nome do arquivo da câmera não diz nada): "Story 3", "Reel 1". */
 export const CATEGORY_ITEM_LABEL: Record<DeliveryCategory, string> = {
-  foto: 'Foto',
   stories: 'Story',
   reels: 'Reel',
 }
 
-export function isVideoCategory(value: unknown): value is VideoCategory {
+export function isDeliveryCategory(value: unknown): value is DeliveryCategory {
   return value === 'stories' || value === 'reels'
 }
 
-/** Categoria a gravar: imagem é sempre foto; vídeo usa a escolhida e, sem escolha, vai para Stories. */
+/** Categoria a gravar: foto é sempre Stories; vídeo usa a escolhida e, sem escolha, vai para Stories. */
 export function categoryFor(tipo: string, requested: unknown): DeliveryCategory {
-  if (!isVideoType(tipo)) return 'foto'
-  return isVideoCategory(requested) ? requested : 'stories'
+  if (!isVideoType(tipo)) return 'stories'
+  return requested === 'reels' ? 'reels' : 'stories'
 }

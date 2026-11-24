@@ -183,7 +183,7 @@
   }
 }
 
-/* Seções: Fotos, Stories, Vídeos para Reels. */
+/* Seções: Stories (fotos e vídeos na ordem de envio) e Vídeos para Reels. */
 .entrega-group {
   display: grid;
   gap: 12px;

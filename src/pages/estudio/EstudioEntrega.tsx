@@ -31,7 +31,7 @@ import {
   isVideoType,
   validityFromDate,
   validityToDate,
-  type VideoCategory,
+  type DeliveryCategory,
 } from '../../shared/delivery'
 import { ShareCard, UploadQueue, ValidityField, type QueueItem } from './EstudioEntregaParts'
 import './estudio.css'
@@ -45,8 +45,8 @@ export function EstudioEntrega({ id }: { id: string }) {
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [queue, setQueue] = useState<QueueItem[]>([])
-  // Seção dos vídeos do próximo envio (fotos vão sempre para Fotos).
-  const [videoCategory, setVideoCategory] = useState<VideoCategory>('stories')
+  // Seção dos vídeos do próximo envio (fotos vão sempre para Stories).
+  const [videoCategory, setVideoCategory] = useState<DeliveryCategory>('stories')
   const [covers, setCovers] = useState<{ done: number; total: number; failed: number } | null>(null)
   const uploading = queue.some((q) => q.status === 'fila' || q.status === 'enviando')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -235,7 +235,7 @@ export function EstudioEntrega({ id }: { id: string }) {
             : `${arquivos.length} arquivo(s) · ${formatBytes(total)}`}
         </p>
         <fieldset className="estudio-category-choice">
-          <legend className="estudio-help">Os vídeos deste envio são (fotos vão sempre para Fotos):</legend>
+          <legend className="estudio-help">Os vídeos deste envio vão para (fotos vão sempre para Stories, na ordem de envio):</legend>
           {(['stories', 'reels'] as const).map((value) => (
             <label key={value} className="estudio-check">
               <input
@@ -312,7 +312,7 @@ export function EstudioEntrega({ id }: { id: string }) {
                           value={f.categoria}
                           disabled={busy}
                           onChange={(event) => {
-                            const next = event.target.value as VideoCategory
+                            const next = event.target.value as DeliveryCategory
                             if (!session) return
                             void act(async () => {
                               await updateDeliveryFile(session, id, f.id, { categoria: next })

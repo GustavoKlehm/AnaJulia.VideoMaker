@@ -57,12 +57,13 @@ function useDensity(): [Density, (next: Density) => void] {
 }
 
 /**
- * Seções na ordem fixa (Fotos, Stories, Reels); dentro de cada uma, a ordem em que a Ana subiu.
- * O nome que a câmera dá ("IMG_4821.MOV") não diz nada: cada item vira "Story 3", "Reel 1", "Foto 2".
+ * Seções Stories (fotos e vídeos misturados) e Reels; dentro de cada uma, a ordem em que a Ana subiu,
+ * que é a sequência em que ela postou. O nome que a câmera dá ("IMG_4821.MOV") não diz nada:
+ * cada item vira "Story 3", "Reel 1".
  */
 function groupFiles(arquivos: PublicFile[]) {
   return DELIVERY_CATEGORIES.map((categoria) => {
-    const files = arquivos.filter((f) => (f.categoria ?? (isVideoType(f.tipo) ? 'stories' : 'foto')) === categoria)
+    const files = arquivos.filter((f) => (f.categoria ?? 'stories') === categoria)
     return {
       categoria,
       items: files.map((file, index) => ({ file, label: `${CATEGORY_ITEM_LABEL[categoria]} ${index + 1}` })),
