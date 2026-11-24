@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
-import { ArrowClockwise } from '@phosphor-icons/react'
 import { portalTheme } from '../../lib/portalTheme'
 import { stableUrl } from '../../lib/signedUrlCache'
 import { formatDateBr, isDeliveryLive } from '../../shared/delivery'
@@ -55,11 +54,9 @@ export function EntregaPage({ token }: { token: string }) {
   const [data, setData] = useState<PublicDelivery | null>(null)
   const [failure, setFailure] = useState<Failure | null>(null)
   const [notice, setNotice] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
 
   const refresh = useCallback(
-    async (mode: 'inicial' | 'auto' | 'manual') => {
-      if (mode === 'manual') setRefreshing(true)
+    async (mode: 'inicial' | 'auto') => {
       try {
         const next = await fetchDelivery(token)
         setFailure(null)
@@ -67,7 +64,6 @@ export function EntregaPage({ token }: { token: string }) {
           if (!current) return next
           const { files, added } = mergeFiles(current.arquivos, next.arquivos)
           if (added > 0) setNotice(added === 1 ? 'Chegou 1 arquivo novo.' : `Chegaram ${added} arquivos novos.`)
-          else if (mode === 'manual') setNotice('Nada novo por enquanto.')
           return { ...next, arquivos: files }
         })
       } catch (cause) {
@@ -75,8 +71,6 @@ export function EntregaPage({ token }: { token: string }) {
           setFailure(cause && typeof cause === 'object' && 'message' in cause ? (cause as Failure) : { message: 'Sem conexão.' })
           if ((cause as Failure).cliente) setData(null)
         }
-      } finally {
-        if (mode === 'manual') setRefreshing(false)
       }
     },
     [token],
@@ -138,8 +132,6 @@ export function EntregaPage({ token }: { token: string }) {
             token={token}
             notice={notice}
             live={live}
-            refreshing={refreshing}
-            onRefresh={() => void refresh('manual')}
           />
         ) : null}
       </main>
@@ -156,11 +148,9 @@ type DeliveryViewProps = {
   token: string
   notice: string
   live: boolean
-  refreshing: boolean
-  onRefresh: () => void
 }
 
-function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: DeliveryViewProps) {
+function DeliveryView({ data, token, notice, live }: DeliveryViewProps) {
   const { entrega, arquivos } = data
   const count = (categoria: PublicFile['categoria']) =>
     arquivos.filter((f) => (f.categoria ?? 'stories') === categoria).length
@@ -181,9 +171,6 @@ function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: Deli
           {counts.length ? counts.join(' · ') : 'Os arquivos ainda estão chegando.'}
           {entrega.expiraEm ? ` · disponível até ${formatDateBr(entrega.expiraEm)}` : ''}
         </p>
-        <button className="portal-link-button" type="button" disabled={refreshing} onClick={onRefresh}>
-          <ArrowClockwise aria-hidden="true" /> {refreshing ? 'Atualizando…' : 'Atualizar'}
-        </button>
       </div>
 
       <p className="portal-saved" role="status">
@@ -194,7 +181,7 @@ function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: Deli
         <p className="portal-muted">
           {live
             ? 'Assim que a Ana enviar, os vídeos aparecem aqui. A página se atualiza sozinha.'
-            : 'Assim que a Ana enviar, os vídeos aparecem aqui. Toque em “Atualizar” para conferir.'}
+            : 'Os arquivos aparecem aqui assim que a Ana enviar.'}
         </p>
       ) : (
         <EntregaFiles arquivos={arquivos} token={token} />

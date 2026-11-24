@@ -106,6 +106,55 @@
   background: var(--portal-surface);
 }
 
+/* Mídia do card, com o botão de tela cheia no canto. */
+.entrega-card__media {
+  position: relative;
+}
+
+.entrega-card__photo {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.entrega-card__expand {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: background-color var(--duration-hover) ease;
+}
+
+.entrega-card__expand:hover {
+  background: rgb(0 0 0 / 0.8);
+}
+
+.entrega-card__expand:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -4px;
+}
+
+.entrega-grid--pequena .entrega-card__expand {
+  top: 4px;
+  right: 4px;
+  width: 32px;
+  height: 32px;
+  font-size: 0.9rem;
+}
+
 .entrega-card video,
 .entrega-card img {
   display: block;

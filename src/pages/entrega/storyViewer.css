@@ -1,0 +1,285 @@
+/*
+ * Tela cheia no estilo stories. Fundo sempre escuro (é um visualizador de mídia, igual ao das redes sociais),
+ * independente das cores do cliente.
+ */
+
+.story-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: #121212;
+  color: #fff;
+  font-family: var(--font-sans);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.story-viewer button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.story-viewer :focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Palco 9:16 centralizado no computador; ocupa a tela toda no celular. */
+.story-viewer__stage {
+  position: relative;
+  height: min(calc(100dvh - 32px), 920px);
+  aspect-ratio: 9 / 16;
+  max-width: calc(100vw - 160px);
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+
+.story-viewer__media {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.story-viewer__poster,
+.story-viewer__photo,
+.story-viewer__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+/* O próximo vídeo fica carregando por baixo, invisível. */
+.story-viewer__video {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.story-viewer__video.is-current {
+  opacity: 1;
+}
+
+.story-viewer__spinner {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgb(255 255 255 / 0.25);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: story-viewer-spin 0.9s linear infinite;
+}
+
+@keyframes story-viewer-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.story-viewer__message {
+  position: relative;
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 0.7);
+  text-align: center;
+}
+
+.story-viewer__paused {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.5);
+  font-size: 32px;
+}
+
+/* Área de toque: terço esquerdo volta, o resto avança. Fica por baixo dos controles. */
+.story-viewer__tap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.story-viewer__top {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  display: grid;
+  gap: 10px;
+  padding: max(10px, env(safe-area-inset-top)) 12px 28px;
+  background: linear-gradient(rgb(0 0 0 / 0.55), transparent);
+  pointer-events: none;
+}
+
+.story-viewer__bars {
+  display: flex;
+  gap: 3px;
+}
+
+.story-viewer__bar {
+  flex: 1;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.35);
+}
+
+.story-viewer__fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.story-viewer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.story-viewer__title {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  line-height: 1.25;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+}
+
+.story-viewer__title strong {
+  font-size: 0.95rem;
+}
+
+.story-viewer__title span {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.story-viewer__controls {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  pointer-events: auto;
+}
+
+.story-viewer__controls button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.35rem;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.5));
+}
+
+.story-viewer__controls button:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+
+/* Baixar e Compartilhar, embaixo (onde o Instagram põe o "Responder"). */
+.story-viewer__actions {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 12px max(14px, env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.55));
+}
+
+.story-viewer__action {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 12rem;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgb(255 255 255 / 0.85);
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.2);
+  font-weight: 600;
+}
+
+.story-viewer__action:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.15);
+}
+
+.story-viewer__action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.story-viewer__note {
+  width: 100%;
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* Setas laterais (computador). */
+.story-viewer__nav {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.85);
+  color: #111 !important;
+  font-size: 1.1rem;
+}
+
+.story-viewer__nav:hover {
+  background: #fff;
+}
+
+/* Celular: o palco ocupa a tela; navegação pelos toques (as setas somem). */
+@media (max-width: 640px) {
+  .story-viewer {
+    gap: 0;
+  }
+
+  .story-viewer__stage {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    aspect-ratio: auto;
+    border-radius: 0;
+  }
+
+  .story-viewer__nav {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-viewer__spinner {
+    animation-duration: 2.5s;
+  }
+}

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { DownloadSimple, GridNine, ShareNetwork, Square, SquaresFour, X, type Icon } from '@phosphor-icons/react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { CornersOut, DownloadSimple, GridNine, ShareNetwork, Square, SquaresFour, X, type Icon } from '@phosphor-icons/react'
 import { DeliveryVideo } from '../../components/DeliveryVideo'
 import {
   CATEGORY_ITEM_LABEL,
@@ -19,9 +19,9 @@ import {
   type FolderHandle,
 } from './downloadAll'
 import { fileUrl, type PublicFile } from './entregaApi'
-
-/** Acima disso o "Compartilhar" não carrega o arquivo na memória do aparelho: compartilha o link da entrega. */
-const SHARE_LIMIT_BYTES = 400 * 1024 ** 2
+import { requestPageFullscreen } from './fullscreen'
+import { StoryViewer, type ViewerItem } from './StoryViewer'
+import { prepareShareAhead, useFileActions } from './useFileActions'
 
 type Density = 'grande' | 'media' | 'pequena'
 
@@ -74,7 +74,21 @@ function groupFiles(arquivos: PublicFile[]) {
 /** Lista dos arquivos da entrega: "Baixar todos", seletor de densidade e as seções. */
 export function EntregaFiles({ arquivos, token }: { arquivos: PublicFile[]; token: string }) {
   const [density, setDensity] = useDensity()
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null)
   const groups = groupFiles(arquivos)
+  // Sequência da tela cheia: Stories e depois Reels, na mesma ordem da página.
+  const sequence: ViewerItem[] = groups.flatMap(({ categoria, items }) => items.map((item) => ({ ...item, categoria })))
+
+  function openViewer(fileId: string) {
+    const start = sequence.findIndex((item) => item.file.id === fileId)
+    if (start < 0) return
+    // Algum vídeo tocando no card para, senão o som fica por cima da tela cheia.
+    document.querySelectorAll<HTMLVideoElement>('.entrega-grid video').forEach((video) => video.pause())
+    requestPageFullscreen() // precisa ser no clique
+    setViewerIndex(start)
+  }
+
+  const closeViewer = useCallback(() => setViewerIndex(null), [])
 
   return (
     <div className="entrega-files">
@@ -104,11 +118,22 @@ export function EntregaFiles({ arquivos, token }: { arquivos: PublicFile[]; toke
           </h2>
           <ul className={`entrega-grid entrega-grid--${density}`}>
             {items.map(({ file, label }) => (
-              <FileCard key={file.id} file={file} token={token} label={label} compact={density !== 'grande'} />
+              <FileCard
+                key={file.id}
+                file={file}
+                token={token}
+                label={label}
+                compact={density !== 'grande'}
+                onExpand={() => openViewer(file.id)}
+              />
             ))}
           </ul>
         </section>
       ))}
+
+      {viewerIndex !== null && sequence[viewerIndex] ? (
+        <StoryViewer items={sequence} startIndex={viewerIndex} token={token} onClose={closeViewer} />
+      ) : null}
     </div>
   )
 }
@@ -236,26 +261,6 @@ function BulkStatus({ state }: { state: BulkState }) {
   )
 }
 
-/** O navegador sabe compartilhar arquivos (celular, Chrome/Edge no Windows, Safari no Mac)? */
-function supportsFileShare(): boolean {
-  try {
-    return (
-      typeof navigator.canShare === 'function' &&
-      navigator.canShare({ files: [new File([''], 'teste.mp4', { type: 'video/mp4' })] })
-    )
-  } catch {
-    return false
-  }
-}
-
-function canShareThis(file: File): boolean {
-  try {
-    return typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
-  } catch {
-    return false
-  }
-}
-
 /** Texto no card grande; nos menores, só o ícone (o texto fica para leitores de tela e no title). */
 function ActionLabel({ icon, text, compact }: { icon: ReactNode; text: string; compact: boolean }) {
   if (!compact) {
@@ -273,133 +278,75 @@ function ActionLabel({ icon, text, compact }: { icon: ReactNode; text: string; c
   )
 }
 
-type ShareState = 'idle' | 'preparing' | 'ready' | 'copied' | 'error'
+type FileCardProps = { file: PublicFile; token: string; label: string; compact: boolean; onExpand: () => void }
 
-const SHARE_TEXT: Record<ShareState, string> = {
-  idle: 'Compartilhar',
-  preparing: 'Preparando…',
-  ready: 'Toque para compartilhar',
-  copied: 'Link copiado',
-  error: 'Compartilhar',
-}
-
-type FileCardProps = { file: PublicFile; token: string; label: string; compact: boolean }
-
-function FileCard({ file, token, label, compact }: FileCardProps) {
-  const [shareState, setShareState] = useState<ShareState>('idle')
-  const [downloadState, setDownloadState] = useState<'idle' | 'opening' | 'error'>('idle')
-  const prepared = useRef<File | null>(null)
+function FileCard({ file, token, label, compact, onExpand }: FileCardProps) {
+  const actions = useFileActions(file, token)
   const video = isVideoType(file.tipo)
-
-  // "Baixar": salva o arquivo original no aparelho (a URL só é gerada no clique).
-  async function download() {
-    setDownloadState('opening')
-    try {
-      window.location.assign(await fileUrl(token, file.id, 'baixar'))
-      setDownloadState('idle')
-    } catch {
-      setDownloadState('error')
-    }
-  }
-
-  async function shareFile(shared: File) {
-    try {
-      await navigator.share({ files: [shared] })
-      setShareState('idle')
-    } catch (cause) {
-      // Preparar o arquivo demorou e o navegador não considera mais o toque: precisa de outro toque.
-      if (cause instanceof DOMException && cause.name === 'NotAllowedError') setShareState('ready')
-      else setShareState('idle') // cancelou a folha de compartilhamento
-    }
-  }
-
-  /** Sem compartilhamento de arquivo (ou arquivo grande demais para a memória do aparelho): compartilha o link. */
-  async function shareLink() {
-    const url = window.location.href
-    if (typeof navigator.share === 'function') {
-      try {
-        await navigator.share({ title: document.title, url })
-      } catch {
-        // Cancelou.
-      }
-      setShareState('idle')
-      return
-    }
-    try {
-      await navigator.clipboard.writeText(url)
-      setShareState('copied')
-    } catch {
-      setShareState('error')
-    }
-  }
-
-  // "Compartilhar": abre o compartilhar nativo (WhatsApp, Instagram, e-mail…) com o próprio arquivo.
-  async function share() {
-    if (prepared.current) {
-      await shareFile(prepared.current)
-      return
-    }
-    if (!supportsFileShare() || file.tamanho > SHARE_LIMIT_BYTES) {
-      await shareLink()
-      return
-    }
-    setShareState('preparing')
-    try {
-      const response = await fetch(await fileUrl(token, file.id, 'assistir'))
-      if (!response.ok) throw new Error(String(response.status))
-      const shared = new File([await response.blob()], file.nome, { type: file.tipo })
-      if (!canShareThis(shared)) throw new Error('não compartilhável')
-      prepared.current = shared
-    } catch {
-      setShareState('error')
-      return
-    }
-    await shareFile(prepared.current)
-  }
-
-  const shareText = SHARE_TEXT[shareState]
-  const downloadText = downloadState === 'opening' ? 'Abrindo…' : 'Baixar'
   const titleFor = (text: string) => (compact ? `${text} · ${label}` : undefined)
 
   return (
     <li className="entrega-card">
-      {video ? (
-        <DeliveryVideo nome={label} capa={file.capa} load={() => fileUrl(token, file.id, 'assistir')} />
-      ) : (
-        <img src={file.url} alt={label} loading="lazy" decoding="async" />
-      )}
+      <div className="entrega-card__media">
+        {video ? (
+          <DeliveryVideo
+            nome={label}
+            capa={file.capa}
+            load={() => {
+              // Começou a ver: já prepara o arquivo para o "Compartilhar" abrir na hora (só no celular).
+              prepareShareAhead(file, token)
+              return fileUrl(token, file.id, 'assistir')
+            }}
+          />
+        ) : (
+          <button className="entrega-card__photo" type="button" aria-label={`Ver ${label} em tela cheia`} onClick={onExpand}>
+            <img src={file.url} alt="" loading="lazy" decoding="async" />
+          </button>
+        )}
+        <button
+          className="entrega-card__expand"
+          type="button"
+          aria-label={`Ver ${label} em tela cheia`}
+          title="Tela cheia"
+          onClick={onExpand}
+        >
+          <CornersOut weight="bold" aria-hidden="true" />
+        </button>
+      </div>
       <div className="entrega-card__body">
         <p className="portal-muted portal-small">{formatBytes(file.tamanho)}</p>
         <div className={`entrega-card__actions${compact ? ' entrega-card__actions--icons' : ''}`}>
           <button
             className="portal-button"
             type="button"
-            disabled={downloadState === 'opening'}
-            title={titleFor(downloadText)}
-            onClick={() => void download()}
+            disabled={actions.downloadState === 'opening'}
+            title={titleFor(actions.downloadText)}
+            onClick={() => void actions.download()}
           >
-            <ActionLabel compact={compact} text={downloadText} icon={<DownloadSimple aria-hidden="true" />} />
+            <ActionLabel compact={compact} text={actions.downloadText} icon={<DownloadSimple aria-hidden="true" />} />
           </button>
           <button
             className="portal-button portal-button--ghost"
             type="button"
-            disabled={shareState === 'preparing'}
-            title={titleFor(shareText)}
-            onClick={() => void share()}
+            disabled={actions.shareState === 'preparing'}
+            title={titleFor(actions.shareText)}
+            onClick={() => void actions.share()}
           >
             <ActionLabel
               compact={compact}
-              text={shareText}
-              icon={<ShareNetwork aria-hidden="true" weight={shareState === 'ready' ? 'fill' : 'regular'} />}
+              text={actions.shareText}
+              icon={<ShareNetwork aria-hidden="true" weight={actions.shareState === 'ready' ? 'fill' : 'regular'} />}
             />
           </button>
         </div>
-        {shareState === 'ready' && compact ? <p className="portal-small entrega-card__hint">Toque de novo para compartilhar.</p> : null}
-        {shareState === 'copied' ? <p className="portal-small entrega-card__hint">Link da entrega copiado.</p> : null}
-        {shareState === 'error' ? (
+        {actions.shareState === 'ready' && compact ? (
+          <p className="portal-small entrega-card__hint">Pronto! Toque para compartilhar.</p>
+        ) : null}
+        {actions.shareState === 'copied' ? <p className="portal-small entrega-card__hint">Link da entrega copiado.</p> : null}
+        {actions.shareState === 'error' ? (
           <p className="portal-error portal-small">{compact ? 'Não deu. Use “Baixar”.' : 'Não deu para compartilhar. Use “Baixar”.'}</p>
         ) : null}
-        {downloadState === 'error' ? (
+        {actions.downloadState === 'error' ? (
           <p className="portal-error portal-small">
             {compact ? 'Falhou. Tente de novo.' : 'Não deu para baixar agora. Tente de novo em instantes.'}
           </p>
