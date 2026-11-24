@@ -9,6 +9,8 @@ import {
   getDeliveryFileUrl,
   renewDeliveryLink,
   updateDelivery,
+  updateDeliveryFile,
+  uploadDeliveryCover,
   uploadDeliveryFile,
   type AdminDelivery,
   type DeliveryFile,
@@ -16,8 +18,11 @@ import {
 import { navigate } from '../../lib/router'
 import { signedUrl, stableUrl } from '../../lib/signedUrlCache'
 import { getSupabase } from '../../lib/supabase'
+import { captureVideoCover } from '../../lib/videoCover'
 import {
   ACCEPTED_EXTENSIONS,
+  CATEGORY_LABEL,
+  DELIVERY_CATEGORIES,
   DELIVERY_STATE_LABEL,
   MAX_FILE_BYTES,
   fileTypeFor,
@@ -26,6 +31,7 @@ import {
   isVideoType,
   validityFromDate,
   validityToDate,
+  type VideoCategory,
 } from '../../shared/delivery'
 import { ShareCard, UploadQueue, ValidityField, type QueueItem } from './EstudioEntregaParts'
 import './estudio.css'
@@ -39,6 +45,9 @@ export function EstudioEntrega({ id }: { id: string }) {
   const [status, setStatus] = useState('')
   const [busy, setBusy] = useState(false)
   const [queue, setQueue] = useState<QueueItem[]>([])
+  // Seção dos vídeos do próximo envio (fotos vão sempre para Fotos).
+  const [videoCategory, setVideoCategory] = useState<VideoCategory>('stories')
+  const [covers, setCovers] = useState<{ done: number; total: number; failed: number } | null>(null)
   const uploading = queue.some((q) => q.status === 'fila' || q.status === 'enviando')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -104,6 +113,7 @@ export function EstudioEntrega({ id }: { id: string }) {
     setError('')
     setStatus('')
 
+    const categoria = videoCategory
     const items: (QueueItem & { file: File })[] = files.map((file, i) => {
       const invalid = !fileTypeFor(file.name)
         ? 'formato não aceito (use mp4, mov, webm, jpg, png, webp ou heic)'
@@ -130,7 +140,14 @@ export function EstudioEntrega({ id }: { id: string }) {
         // Sessão atualizada a cada arquivo: um lote grande pode passar da validade do login.
         const { data } = await getSupabase().auth.getSession()
         if (!data.session) throw new Error('Sua sessão caiu. Entre de novo no estúdio.')
-        await uploadDeliveryFile(data.session, id, item.file, (progress) => patchQueue(item.key, { progress }))
+        const arquivo = await uploadDeliveryFile(data.session, id, item.file, (progress) => patchQueue(item.key, { progress }), {
+          categoria,
+        })
+        // Capa do vídeo tirada do arquivo local (sem baixar nada). Opcional: se falhar, o envio vale do mesmo jeito.
+        if (isVideoType(arquivo.tipo)) {
+          const jpeg = await captureVideoCover(item.file)
+          if (jpeg) await uploadDeliveryCover(data.session, id, arquivo.id, jpeg).catch(() => undefined)
+        }
         patchQueue(item.key, { status: 'ok', progress: 1 })
         sent += 1
       } catch (cause) {
@@ -140,6 +157,41 @@ export function EstudioEntrega({ id }: { id: string }) {
     if (sent > 0) {
       setStatus(sent === 1 ? '1 arquivo enviado.' : `${sent} arquivos enviados.`)
       await load().catch(() => undefined)
+    }
+  }
+
+  /**
+   * Gera a capa dos vídeos que ainda não têm (enviados antes desta função existir, ou cuja capa falhou).
+   * Abre cada vídeo pela URL só até achar um frame limpo e para de baixar.
+   */
+  async function generateMissingCovers(videos: DeliveryFile[]) {
+    if (!session || videos.length === 0) return
+    setError('')
+    setStatus('')
+    let failed = 0
+    setCovers({ done: 0, total: videos.length, failed })
+    for (const [index, video] of videos.entries()) {
+      try {
+        // URL nova (não a do cache): a do player pode estar no cache do navegador sem CORS, e aí o frame não pode ser lido.
+        const { url } = await getDeliveryFileUrl(session, id, video.id, 'assistir')
+        const jpeg = await captureVideoCover(url)
+        if (!jpeg) throw new Error('sem frame')
+        await uploadDeliveryCover(session, id, video.id, jpeg)
+      } catch {
+        failed += 1
+      }
+      setCovers({ done: index + 1, total: videos.length, failed })
+    }
+    await load().catch(() => undefined)
+    setCovers(null)
+    const ok = videos.length - failed
+    if (ok > 0) setStatus(ok === 1 ? '1 capa gerada.' : `${ok} capas geradas.`)
+    if (failed > 0) {
+      setError(
+        failed === 1
+          ? '1 vídeo ficou sem capa: este navegador não conseguiu abrir o formato dele.'
+          : `${failed} vídeos ficaram sem capa: este navegador não conseguiu abrir o formato deles.`,
+      )
     }
   }
 
@@ -154,6 +206,7 @@ export function EstudioEntrega({ id }: { id: string }) {
 
   const { entrega, arquivos } = detail
   const total = arquivos.reduce((sum, f) => sum + f.tamanho, 0)
+  const withoutCover = arquivos.filter((f) => isVideoType(f.tipo) && !f.capa)
 
   return (
     <main className="estudio-page">
@@ -181,6 +234,21 @@ export function EstudioEntrega({ id }: { id: string }) {
             ? 'Nada enviado ainda. Pode subir aos poucos durante o evento: o cliente vê os novos quando atualiza a página.'
             : `${arquivos.length} arquivo(s) · ${formatBytes(total)}`}
         </p>
+        <fieldset className="estudio-category-choice">
+          <legend className="estudio-help">Os vídeos deste envio são (fotos vão sempre para Fotos):</legend>
+          {(['stories', 'reels'] as const).map((value) => (
+            <label key={value} className="estudio-check">
+              <input
+                type="radio"
+                name="categoria-envio"
+                value={value}
+                checked={videoCategory === value}
+                onChange={() => setVideoCategory(value)}
+              />
+              {CATEGORY_LABEL[value]}
+            </label>
+          ))}
+        </fieldset>
         <div className="estudio-actions">
           <input
             ref={inputRef}
@@ -195,54 +263,102 @@ export function EstudioEntrega({ id }: { id: string }) {
           </button>
         </div>
         {uploading ? <p className="estudio-help">Não feche esta página até terminar o envio.</p> : null}
+        {covers ? (
+          <p className="estudio-help" role="status">
+            Gerando capas: {covers.done} de {covers.total}…
+          </p>
+        ) : withoutCover.length > 0 && !uploading ? (
+          <div className="estudio-actions">
+            <p className="estudio-help">
+              {withoutCover.length === 1 ? '1 vídeo está sem capa.' : `${withoutCover.length} vídeos estão sem capa.`}
+            </p>
+            <button
+              className="estudio-button-ghost"
+              type="button"
+              disabled={busy}
+              onClick={() => void generateMissingCovers(withoutCover)}
+            >
+              Gerar capas
+            </button>
+          </div>
+        ) : null}
         <UploadQueue items={queue} />
 
-        <ul className="estudio-delivery-files">
-          {arquivos.map((f) => (
-            <li key={f.id} className="estudio-delivery-file">
-              {isVideoType(f.tipo) ? (
-                <DeliveryVideo nome={f.nome} capa={f.capa} muted load={() => fileUrl(f.id, 'assistir')} />
-              ) : f.url ? (
-                <img src={f.url} alt="" loading="lazy" decoding="async" />
-              ) : (
-                <div className="estudio-delivery-file__empty" />
-              )}
-              <p className="estudio-client-row__name">{f.nome}</p>
-              <p className="estudio-help">
-                {formatBytes(f.tamanho)}
-                {f.capaDe ? ` · capa de ${f.capaDe} (o cliente não vê como foto)` : ''}
-              </p>
-              <div className="estudio-actions">
-                <button
-                  className="estudio-button-ghost"
-                  type="button"
-                  onClick={() => {
-                    setError('')
-                    fileUrl(f.id, 'baixar')
-                      .then((url) => window.location.assign(url))
-                      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Não deu para baixar.'))
-                  }}
-                >
-                  Baixar
-                </button>
-                <button
-                  className="estudio-button-ghost"
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    if (!session || !window.confirm(`Apagar "${f.nome}"? O cliente deixa de ver este arquivo.`)) return
-                    void act(async () => {
-                      await deleteDeliveryFile(session, id, f.id)
-                      await load()
-                    }, 'Arquivo apagado.')
-                  }}
-                >
-                  Apagar
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        {/* Mesma divisão e ordem que o cliente vê. */}
+        {DELIVERY_CATEGORIES.map((categoria) => {
+          const group = arquivos.filter((f) => f.categoria === categoria)
+          if (group.length === 0) return null
+          return (
+            <div key={categoria} className="estudio-delivery-group">
+              <h3>
+                {CATEGORY_LABEL[categoria]} <span className="estudio-help">({group.length})</span>
+              </h3>
+              <ul className="estudio-delivery-files">
+                {group.map((f) => (
+                  <li key={f.id} className="estudio-delivery-file">
+                    {isVideoType(f.tipo) ? (
+                      <DeliveryVideo nome={f.nome} capa={f.capa} muted load={() => fileUrl(f.id, 'assistir')} />
+                    ) : f.url ? (
+                      <img src={f.url} alt="" loading="lazy" decoding="async" />
+                    ) : (
+                      <div className="estudio-delivery-file__empty" />
+                    )}
+                    <p className="estudio-client-row__name">{f.nome}</p>
+                    <p className="estudio-help">{formatBytes(f.tamanho)}</p>
+                    {isVideoType(f.tipo) ? (
+                      <label className="estudio-field estudio-delivery-file__category">
+                        <span>Seção</span>
+                        <select
+                          value={f.categoria}
+                          disabled={busy}
+                          onChange={(event) => {
+                            const next = event.target.value as VideoCategory
+                            if (!session) return
+                            void act(async () => {
+                              await updateDeliveryFile(session, id, f.id, { categoria: next })
+                              await load()
+                            }, `Vídeo movido para ${CATEGORY_LABEL[next]}.`)
+                          }}
+                        >
+                          <option value="stories">{CATEGORY_LABEL.stories}</option>
+                          <option value="reels">{CATEGORY_LABEL.reels}</option>
+                        </select>
+                      </label>
+                    ) : null}
+                    <div className="estudio-actions">
+                      <button
+                        className="estudio-button-ghost"
+                        type="button"
+                        onClick={() => {
+                          setError('')
+                          fileUrl(f.id, 'baixar')
+                            .then((url) => window.location.assign(url))
+                            .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Não deu para baixar.'))
+                        }}
+                      >
+                        Baixar
+                      </button>
+                      <button
+                        className="estudio-button-ghost"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          if (!session || !window.confirm(`Apagar "${f.nome}"? O cliente deixa de ver este arquivo.`)) return
+                          void act(async () => {
+                            await deleteDeliveryFile(session, id, f.id)
+                            await load()
+                          }, 'Arquivo apagado.')
+                        }}
+                      >
+                        Apagar
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
       </section>
 
       <ShareCard titulo={entrega.titulo} link={entrega.link} expiraEm={entrega.expiraEm} live={entrega.estado === 'ativa'} />

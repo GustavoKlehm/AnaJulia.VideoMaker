@@ -4,21 +4,32 @@ import express from 'express'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   MAX_FILE_BYTES,
+  categoryFor,
   cleanupCutoff,
   deliveryState,
   fileTypeFor,
   formatBytes,
   isDeliveryToken,
+  isVideoCategory,
   isVideoType,
-  pairStills,
   parseDeliveryInput,
   safeFileName,
+  type DeliveryCategory,
   todayInBrazil,
 } from '../src/shared/delivery.js'
 import { readBearerToken } from './estudioUsers.js'
 import { matchesSyncToken } from './portalInput.js'
 import { authorize, fail, loadClient, portalUrl, type ClientRow } from './portalRoutes.js'
-import { SIGNED_URL_SECONDS, presignUpload, removeFiles, signGet, signGetMany, statUpload, type StorageKind } from './deliveryStorage.js'
+import {
+  SIGNED_URL_SECONDS,
+  presignUpload,
+  removeFiles,
+  signGet,
+  signGetMany,
+  statUpload,
+  type StorageKind,
+  type StoredFile,
+} from './deliveryStorage.js'
 import { getSupabase } from './supabase.js'
 
 type DeliveryRow = {
@@ -44,6 +55,10 @@ type FileRow = {
   tamanho: number
   created_at: string
   storage: StorageKind
+  /** Capa do vídeo (JPEG no R2). */
+  capa_path: string | null
+  /** Seção na página do cliente. */
+  categoria: DeliveryCategory
 }
 
 type ClientBrief = Pick<ClientRow, 'slug' | 'nome' | 'cor_principal' | 'cor_secundaria' | 'ativo'>
@@ -78,8 +93,8 @@ function mapDelivery(req: Request, row: DeliveryWithClient | DeliveryRow, extra:
   }
 }
 
-/** `url` só vem para imagens; `capa` é a URL do "-still" casado com o vídeo; `capaDe` marca o still (estúdio). */
-type FileExtras = { url?: string; capa?: string; capaDe?: string }
+/** `url` só vem para imagens; `capa` é a URL da capa do vídeo (primeiro frame limpo, gerado no envio). */
+type FileExtras = { url?: string; capa?: string }
 
 function mapFile(row: FileRow, extras: FileExtras = {}) {
   return {
@@ -87,6 +102,8 @@ function mapFile(row: FileRow, extras: FileExtras = {}) {
     nome: row.nome,
     tipo: row.tipo,
     tamanho: row.tamanho,
+    // Antes da migration da categoria, a coluna não existe: deduz pelo tipo.
+    categoria: row.categoria ?? categoryFor(row.tipo, undefined),
     criadoEm: row.created_at,
     ...Object.fromEntries(Object.entries(extras).filter(([, v]) => v !== undefined)),
   }
@@ -125,35 +142,37 @@ function signedUntil(): string {
  * Assina só as imagens (fotos e capas dos vídeos). Vídeo nunca vem assinado na lista: a URL dele é pedida
  * no clique (rota .../url), senão cada vídeo ganharia uma URL nova a cada busca e o navegador baixaria de novo.
  */
-async function signImages(files: FileRow[]) {
-  const urls = new Map<string, string>()
-  const signed = await signGetMany(files.filter((f) => !isVideoType(f.tipo)))
-  for (const [file, url] of signed) urls.set(file.id, url)
-  return urls
+/** Caminho da capa de um vídeo: fica no R2, ao lado do vídeo. */
+function coverPathFor(file: FileRow): string {
+  return `${file.path}.capa.jpg`
 }
 
-/** Lista para as telas: vídeos com a capa casada; no link do cliente (`forClient`) os stills casados somem da lista. */
+/** Tudo o que um arquivo ocupa no armazenamento (o próprio arquivo e, se for vídeo, a capa). */
+function storedObjects(files: FileRow[]): StoredFile[] {
+  return files.flatMap((f) => [
+    { path: f.path, storage: f.storage },
+    ...(f.capa_path ? [{ path: f.capa_path, storage: 'r2' as const }] : []),
+  ])
+}
+
+/**
+ * Lista para as telas. Assina só imagens: as fotos e as capas dos vídeos. Vídeo nunca vem assinado na lista:
+ * a URL dele é pedida no clique (rota .../url), senão o navegador baixaria tudo de novo a cada busca.
+ */
 async function filesForView(files: FileRow[], forClient: boolean) {
   const urlsValidasAte = signedUntil()
-  const signed = await signImages(files)
-  const stills = pairStills(files)
-  const stillOf = new Map<string, string>()
-  for (const [videoId, still] of stills) {
-    const video = files.find((f) => f.id === videoId)
-    if (video && !stillOf.has(still.id)) stillOf.set(still.id, video.nome)
-  }
+  const photos = files.filter((f) => !isVideoType(f.tipo))
+  const covers = files.flatMap((f) =>
+    isVideoType(f.tipo) && f.capa_path ? [{ id: f.id, path: f.capa_path, storage: 'r2' as const }] : [],
+  )
+  const [photoUrls, coverUrls] = await Promise.all([signGetMany(photos), signGetMany(covers)])
+  const photoById = new Map([...photoUrls].map(([file, url]) => [file.id, url]))
+  const coverById = new Map([...coverUrls].map(([file, url]) => [file.id, url]))
+
   const arquivos = files
-    .filter((f) => !forClient || !stillOf.has(f.id))
-    // Imagem que não deu para assinar (sumiu do Storage) não aparece para o cliente.
-    .filter((f) => !forClient || isVideoType(f.tipo) || signed.has(f.id))
-    .map((f) => {
-      const still = stills.get(f.id)
-      return mapFile(f, {
-        url: signed.get(f.id),
-        capa: still ? signed.get(still.id) : undefined,
-        capaDe: forClient ? undefined : stillOf.get(f.id),
-      })
-    })
+    // Foto que não deu para assinar (sumiu do armazenamento) não aparece para o cliente.
+    .filter((f) => !forClient || isVideoType(f.tipo) || photoById.has(f.id))
+    .map((f) => mapFile(f, { url: photoById.get(f.id), capa: coverById.get(f.id) }))
   return { arquivos, urlsValidasAte }
 }
 
@@ -374,7 +393,7 @@ async function deleteDelivery(req: Request, res: Response) {
     const delivery = await loadDelivery(db, res, req.params.id)
     if (!delivery) return
     const files = await listFiles(db, delivery.id)
-    await removeFiles(files)
+    await removeFiles(storedObjects(files))
     const { error } = await db.from('portal_deliveries').delete().eq('id', delivery.id)
     if (error) throw error
     res.json({ ok: true, arquivosApagados: files.length })
@@ -418,7 +437,7 @@ async function startUpload(req: Request, res: Response) {
 /** Passo 2 do envio: confere que o arquivo chegou ao Storage e registra na entrega. */
 async function finishUpload(req: Request, res: Response) {
   if (!(await authorize(req, res))) return
-  const body = (req.body ?? {}) as { path?: unknown; nome?: unknown }
+  const body = (req.body ?? {}) as { path?: unknown; nome?: unknown; categoria?: unknown }
   const path = typeof body.path === 'string' ? body.path : ''
   const nome = typeof body.nome === 'string' ? body.nome.trim().slice(0, 200) : ''
   try {
@@ -439,7 +458,10 @@ async function finishUpload(req: Request, res: Response) {
 
     const { data, error } = await db
       .from('portal_delivery_files')
-      .upsert({ delivery_id: delivery.id, path, nome, tipo, tamanho, storage: 'r2' }, { onConflict: 'path' })
+      .upsert(
+        { delivery_id: delivery.id, path, nome, tipo, tamanho, storage: 'r2', categoria: categoryFor(tipo, body.categoria) },
+        { onConflict: 'path' },
+      )
       .select('*')
       .single()
     if (error) throw error
@@ -461,12 +483,93 @@ async function deleteFile(req: Request, res: Response) {
     if (!delivery) return
     const file = await loadFile(db, res, delivery.id, req.params.fileId)
     if (!file) return
-    await removeFiles([file])
+    await removeFiles(storedObjects([file]))
     const { error: deleteError } = await db.from('portal_delivery_files').delete().eq('id', file.id)
     if (deleteError) throw deleteError
     res.json({ ok: true })
   } catch (cause) {
     fail(res, cause, 'Não deu para apagar o arquivo.')
+  }
+}
+
+/** Troca a seção de um vídeo (Stories ↔ Reels). Foto fica sempre em Fotos. */
+async function updateFile(req: Request, res: Response) {
+  if (!(await authorize(req, res))) return
+  const categoria = (req.body as { categoria?: unknown } | undefined)?.categoria
+  if (!isVideoCategory(categoria)) {
+    res.status(400).json({ error: 'Use categoria "stories" ou "reels".' })
+    return
+  }
+  try {
+    const db = getSupabase()
+    const delivery = await loadDelivery(db, res, req.params.id)
+    if (!delivery) return
+    const file = await loadFile(db, res, delivery.id, req.params.fileId)
+    if (!file) return
+    if (!isVideoType(file.tipo)) {
+      res.status(400).json({ error: 'Foto fica sempre em Fotos.' })
+      return
+    }
+    const { data, error } = await db
+      .from('portal_delivery_files')
+      .update({ categoria })
+      .eq('id', file.id)
+      .select('*')
+      .single()
+    if (error) throw error
+    const [view] = (await filesForView([data as FileRow], false)).arquivos
+    res.json({ arquivo: view })
+  } catch (cause) {
+    fail(res, cause, 'Não deu para mudar a seção do vídeo.')
+  }
+}
+
+/** Capa do vídeo, passo 1: URL para o estúdio subir o JPEG direto no R2. */
+async function startCoverUpload(req: Request, res: Response) {
+  if (!(await authorize(req, res))) return
+  try {
+    const db = getSupabase()
+    const delivery = await loadDelivery(db, res, req.params.id)
+    if (!delivery) return
+    const file = await loadFile(db, res, delivery.id, req.params.fileId)
+    if (!file) return
+    if (!isVideoType(file.tipo)) {
+      res.status(400).json({ error: 'Só vídeo tem capa.' })
+      return
+    }
+    const path = coverPathFor(file)
+    const { signedUrl, headers } = await presignUpload(path, 'image/jpeg')
+    res.json({ path, signedUrl, headers })
+  } catch (cause) {
+    fail(res, cause, 'Não deu para preparar a capa.')
+  }
+}
+
+/** Capa do vídeo, passo 2: confere que o JPEG chegou ao R2 e liga a capa ao vídeo. */
+async function finishCoverUpload(req: Request, res: Response) {
+  if (!(await authorize(req, res))) return
+  try {
+    const db = getSupabase()
+    const delivery = await loadDelivery(db, res, req.params.id)
+    if (!delivery) return
+    const file = await loadFile(db, res, delivery.id, req.params.fileId)
+    if (!file) return
+    const path = coverPathFor(file)
+    if (!(await statUpload(path))) {
+      res.status(409).json({ error: 'A capa não chegou ao armazenamento.' })
+      return
+    }
+    const { data, error } = await db
+      .from('portal_delivery_files')
+      .update({ capa_path: path })
+      .eq('id', file.id)
+      .select('*')
+      .single()
+    if (error) throw error
+    const [view] = (await filesForView([data as FileRow], false)).arquivos
+    res.json({ arquivo: view })
+  } catch (cause) {
+    fail(res, cause, 'Não deu para salvar a capa.')
   }
 }
 
@@ -484,7 +587,10 @@ export function deliveryAdminRouter(): Router {
   router.post('/entregas/:id/arquivos/envio', run(startUpload))
   router.post('/entregas/:id/arquivos', run(finishUpload))
   router.delete('/entregas/:id/arquivos/:fileId', run(deleteFile))
+  router.patch('/entregas/:id/arquivos/:fileId', run(updateFile))
   router.get('/entregas/:id/arquivos/:fileId/url', run(getFileUrl))
+  router.post('/entregas/:id/arquivos/:fileId/capa/envio', run(startCoverUpload))
+  router.post('/entregas/:id/arquivos/:fileId/capa', run(finishCoverUpload))
   router.get('/clientes/:slug/entregas', run(listForClient))
   router.post('/clientes/:slug/entregas', run(createDelivery))
 
@@ -604,7 +710,7 @@ async function cleanup(req: Request, res: Response) {
     let arquivos = 0
     for (const { id } of (data ?? []) as { id: string }[]) {
       const files = await listFiles(db, id)
-      await removeFiles(files)
+      await removeFiles(storedObjects(files))
       const { error: delError } = await db.from('portal_delivery_files').delete().eq('delivery_id', id)
       if (delError) throw delError
       const { error: updError } = await db

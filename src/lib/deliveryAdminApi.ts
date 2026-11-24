@@ -1,5 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
-import type { DeliveryInput, DeliveryState } from '../shared/delivery'
+import type { DeliveryCategory, DeliveryInput, DeliveryState, VideoCategory } from '../shared/delivery'
 import { estudioRequest } from './estudioApi'
 
 /** Entregas de vídeo: mesmas rotas que o ExPx pode usar (/api/portal), chamadas com a sessão do estúdio. */
@@ -24,13 +24,13 @@ export type DeliveryFile = {
   nome: string
   tipo: string
   tamanho: number
+  /** Seção na página do cliente: foto, stories ou reels. */
+  categoria: DeliveryCategory
   criadoEm: string
   /** Só nas fotos. A URL dos vídeos é pedida no clique (getDeliveryFileUrl). */
   url?: string
-  /** Vídeo: URL do "-still" casado com ele. */
+  /** Vídeo: URL da capa (primeiro frame limpo, gerado no envio ou pelo "Gerar capas"). */
   capa?: string
-  /** Foto "-still": nome do vídeo de que ela é capa. */
-  capaDe?: string
 }
 
 export function listDeliveries(session: Session) {
@@ -125,8 +125,9 @@ export async function uploadDeliveryFile(
   id: string,
   file: File,
   onProgress: (fraction: number) => void,
-  signal?: AbortSignal,
+  options: { categoria?: VideoCategory; signal?: AbortSignal } = {},
 ): Promise<DeliveryFile> {
+  const { categoria, signal } = options
   const start = await estudioRequest<{ path: string; signedUrl: string; tipo: string; headers?: Record<string, string> }>(
     `/api/portal/entregas/${id}/arquivos/envio`,
     session,
@@ -135,7 +136,28 @@ export async function uploadDeliveryFile(
   await putWithProgress(start.signedUrl, file, start.headers ?? { 'content-type': start.tipo }, onProgress, signal)
   const done = await estudioRequest<{ arquivo: DeliveryFile }>(`/api/portal/entregas/${id}/arquivos`, session, {
     method: 'POST',
-    body: JSON.stringify({ path: start.path, nome: file.name }),
+    // Vídeo vai para a seção escolhida (Stories ou Reels); foto vai sempre para Fotos (o servidor decide).
+    body: JSON.stringify({ path: start.path, nome: file.name, categoria }),
   })
+  return done.arquivo
+}
+
+/** Troca um vídeo de seção (Stories ↔ Reels). */
+export function updateDeliveryFile(session: Session, id: string, fileId: string, input: { categoria: VideoCategory }) {
+  return estudioRequest<{ arquivo: DeliveryFile }>(`/api/portal/entregas/${id}/arquivos/${fileId}`, session, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
+/** Sobe a capa (JPEG) de um vídeo direto no R2 e liga ao vídeo. Devolve o arquivo já com a `capa`. */
+export async function uploadDeliveryCover(session: Session, id: string, fileId: string, jpeg: Blob): Promise<DeliveryFile> {
+  const base = `/api/portal/entregas/${id}/arquivos/${fileId}/capa`
+  const start = await estudioRequest<{ signedUrl: string; headers: Record<string, string> }>(`${base}/envio`, session, {
+    method: 'POST',
+  })
+  const put = await fetch(start.signedUrl, { method: 'PUT', headers: start.headers, body: jpeg })
+  if (!put.ok) throw new Error(`A capa não subiu (erro ${put.status}).`)
+  const done = await estudioRequest<{ arquivo: DeliveryFile }>(base, session, { method: 'POST' })
   return done.arquivo
 }

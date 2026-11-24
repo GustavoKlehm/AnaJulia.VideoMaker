@@ -190,38 +190,8 @@ export function deliveryMessage(input: { titulo: string; link: string; expiraEm:
 }
 
 // ---------------------------------------------------------------------------
-// Capas dos vídeos e atualização automática
+// Atualização automática da página do cliente
 // ---------------------------------------------------------------------------
-
-const STILL_SUFFIX = /[-_ ]still$/i
-
-/** "IMG_1234.MOV" → "img_1234" (nome original, sem extensão, minúsculo). */
-function baseOf(nome: string): string {
-  const trimmed = nome.trim()
-  const dot = trimmed.lastIndexOf('.')
-  return (dot > 0 ? trimmed.slice(0, dot) : trimmed).toLowerCase()
-}
-
-/**
- * Casa cada vídeo com a foto "-still" de mesmo nome ("IMG_1234.MOV" + "IMG_1234-still.jpeg"), que vira a capa.
- * Devolve vídeo → still. O casamento é pelo nome original, porque no Storage cada arquivo ganha um prefixo.
- */
-export function pairStills<T extends { id: string; nome: string; tipo: string }>(files: T[]): Map<string, T> {
-  const stills = new Map<string, T>()
-  for (const f of files) {
-    if (isVideoType(f.tipo) || !f.tipo.startsWith('image/')) continue
-    const base = baseOf(f.nome)
-    if (STILL_SUFFIX.test(base)) stills.set(base.replace(STILL_SUFFIX, ''), f)
-  }
-  const pairs = new Map<string, T>()
-  if (stills.size === 0) return pairs
-  for (const f of files) {
-    if (!isVideoType(f.tipo)) continue
-    const still = stills.get(baseOf(f.nome))
-    if (still) pairs.set(f.id, still)
-  }
-  return pairs
-}
 
 /** Horas depois de criada em que a página do cliente ainda confere arquivos novos sozinha. */
 const LIVE_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -237,4 +207,39 @@ export function isDeliveryLive(
   if (d.dataEvento && d.dataEvento === todayInBrazil(now)) return true
   const created = Date.parse(d.criadaEm)
   return Number.isFinite(created) && now.getTime() - created < LIVE_WINDOW_MS
+}
+
+// ---------------------------------------------------------------------------
+// Agrupamento dos arquivos para o cliente
+// ---------------------------------------------------------------------------
+
+/** Foto vai sempre para "Fotos"; vídeo, a Ana diz no estúdio se é Stories ou Reels. */
+export type DeliveryCategory = 'foto' | 'stories' | 'reels'
+
+export type VideoCategory = Exclude<DeliveryCategory, 'foto'>
+
+/** Ordem das seções na página do cliente. */
+export const DELIVERY_CATEGORIES: DeliveryCategory[] = ['foto', 'stories', 'reels']
+
+export const CATEGORY_LABEL: Record<DeliveryCategory, string> = {
+  foto: 'Fotos',
+  stories: 'Stories',
+  reels: 'Vídeos para Reels',
+}
+
+/** Nome de cada item na tela (o nome do arquivo da câmera não diz nada): "Foto 2", "Story 3", "Reel 1". */
+export const CATEGORY_ITEM_LABEL: Record<DeliveryCategory, string> = {
+  foto: 'Foto',
+  stories: 'Story',
+  reels: 'Reel',
+}
+
+export function isVideoCategory(value: unknown): value is VideoCategory {
+  return value === 'stories' || value === 'reels'
+}
+
+/** Categoria a gravar: imagem é sempre foto; vídeo usa a escolhida e, sem escolha, vai para Stories. */
+export function categoryFor(tipo: string, requested: unknown): DeliveryCategory {
+  if (!isVideoType(tipo)) return 'foto'
+  return isVideoCategory(requested) ? requested : 'stories'
 }

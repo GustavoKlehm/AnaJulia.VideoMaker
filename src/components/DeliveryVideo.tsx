@@ -4,7 +4,7 @@ import './DeliveryVideo.css'
 
 type DeliveryVideoProps = {
   nome: string
-  /** URL da foto "-still" casada com o vídeo. Sem ela, aparece um quadro neutro. */
+  /** URL da capa (primeiro frame limpo do vídeo). Sem ela, aparece um quadro neutro. */
   capa?: string
   /** Busca a URL do vídeo. Só é chamada no clique: abrir a página não baixa vídeo nenhum. */
   load: () => Promise<string>

@@ -567,3 +567,33 @@
   min-height: 40px;
   padding: 0 12px;
 }
+
+/* Entregas: escolha da seção dos vídeos no envio e grupos (Fotos / Stories / Reels) como o cliente vê. */
+.estudio-category-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--space-md);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.estudio-category-choice legend {
+  width: 100%;
+  padding: 0;
+}
+
+.estudio-delivery-group {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.estudio-delivery-group h3 {
+  margin: var(--space-md) 0 0;
+  font-size: 1rem;
+}
+
+.estudio-delivery-file__category select {
+  padding: 8px 10px;
+}

@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { ArrowClockwise, DownloadSimple, ShareFat } from '@phosphor-icons/react'
-import { DeliveryVideo } from '../../components/DeliveryVideo'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { ArrowClockwise } from '@phosphor-icons/react'
 import { portalTheme } from '../../lib/portalTheme'
-import { signedUrl, stableUrl } from '../../lib/signedUrlCache'
-import { formatBytes, formatDateBr, isDeliveryLive, isVideoType } from '../../shared/delivery'
+import { stableUrl } from '../../lib/signedUrlCache'
+import { formatDateBr, isDeliveryLive, isVideoType } from '../../shared/delivery'
+import { EntregaFiles } from './EntregaFiles'
+import type { PublicFile } from './entregaApi'
 import '../cliente/portal.css'
 import './entrega.css'
-
-/** `url` só vem nas fotos; vídeo traz só a `capa` (o "-still"). A URL do vídeo é pedida no clique. */
-type PublicFile = { id: string; nome: string; tipo: string; tamanho: number; criadoEm: string; url?: string; capa?: string }
 
 type PublicDelivery = {
   entrega: { titulo: string; descricao: string; dataEvento: string | null; expiraEm: string | null; criadaEm: string }
@@ -19,8 +17,6 @@ type PublicDelivery = {
 
 type Failure = { message: string; cliente?: PublicDelivery['cliente'] }
 
-/** Acima disso o "salvar no celular" não carrega o arquivo na memória do aparelho; fica só o download. */
-const SHARE_LIMIT_BYTES = 400 * 1024 ** 2
 const REFRESH_MS = 60_000
 
 async function fetchDelivery(token: string): Promise<PublicDelivery> {
@@ -40,18 +36,6 @@ async function fetchDelivery(token: string): Promise<PublicDelivery> {
       capa: f.capa ? stableUrl(`${f.id}:capa`, f.capa, data.urlsValidasAte) : undefined,
     })),
   }
-}
-
-type UrlMode = 'assistir' | 'baixar'
-
-/** URL de um arquivo, gerada no clique e guardada enquanto vale (clicar de novo não gera outra). */
-function fileUrl(token: string, fileId: string, mode: UrlMode): Promise<string> {
-  return signedUrl(`${fileId}:${mode}`, async () => {
-    const response = await fetch(`/api/entregas/${token}/arquivos/${fileId}/url?modo=${mode}`, { cache: 'no-store' })
-    const payload = (await response.json().catch(() => ({}))) as { url?: string; validaAte?: string; error?: string }
-    if (!response.ok || !payload.url || !payload.validaAte) throw new Error(payload.error ?? 'Não deu para abrir o arquivo.')
-    return { url: payload.url, validaAte: payload.validaAte }
-  })
 }
 
 /** Mantém os arquivos que já estavam na tela (sem trocar a URL e recarregar) e acrescenta os novos. */
@@ -178,11 +162,15 @@ type DeliveryViewProps = {
 
 function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: DeliveryViewProps) {
   const { entrega, arquivos } = data
-  const videos = arquivos.filter((f) => isVideoType(f.tipo)).length
-  const fotos = arquivos.length - videos
+  const count = (categoria: PublicFile['categoria']) =>
+    arquivos.filter((f) => (f.categoria ?? (isVideoType(f.tipo) ? 'stories' : 'foto')) === categoria).length
+  const fotos = count('foto')
+  const stories = count('stories')
+  const reels = count('reels')
   const counts = [
-    videos ? `${videos} ${videos === 1 ? 'vídeo' : 'vídeos'}` : '',
     fotos ? `${fotos} ${fotos === 1 ? 'foto' : 'fotos'}` : '',
+    stories ? `${stories} ${stories === 1 ? 'story' : 'stories'}` : '',
+    reels ? `${reels} ${reels === 1 ? 'vídeo para Reels' : 'vídeos para Reels'}` : '',
   ].filter(Boolean)
 
   return (
@@ -192,7 +180,7 @@ function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: Deli
         <h1>{entrega.titulo}</h1>
         {entrega.descricao ? <p className="portal-pre">{entrega.descricao}</p> : null}
         <p className="portal-small">
-          {counts.length ? counts.join(' e ') : 'Os arquivos ainda estão chegando.'}
+          {counts.length ? counts.join(' · ') : 'Os arquivos ainda estão chegando.'}
           {entrega.expiraEm ? ` · disponível até ${formatDateBr(entrega.expiraEm)}` : ''}
         </p>
         <button className="portal-link-button" type="button" disabled={refreshing} onClick={onRefresh}>
@@ -211,119 +199,13 @@ function DeliveryView({ data, token, notice, live, refreshing, onRefresh }: Deli
             : 'Assim que a Ana enviar, os vídeos aparecem aqui. Toque em “Atualizar” para conferir.'}
         </p>
       ) : (
-        <ul className="entrega-grid">
-          {arquivos.map((file) => (
-            <FileCard key={file.id} file={file} token={token} />
-          ))}
-        </ul>
+        <EntregaFiles arquivos={arquivos} token={token} />
       )}
 
       <p className="portal-muted portal-small">
-        Toque no vídeo para assistir. No celular, use “Salvar no celular” para mandar o vídeo direto para a galeria ou
-        para o Instagram. No computador, use “Baixar original”.
+        Toque no vídeo para assistir. “Baixar” salva o arquivo no aparelho; “Compartilhar” abre as opções do aparelho
+        (WhatsApp, Instagram, e-mail…). Para guardar tudo de uma vez, use “Baixar todos”.
       </p>
     </>
-  )
-}
-
-function canShareFiles(): boolean {
-  try {
-    return (
-      typeof navigator.canShare === 'function' &&
-      navigator.canShare({ files: [new File([''], 'teste.mp4', { type: 'video/mp4' })] })
-    )
-  } catch {
-    return false
-  }
-}
-
-function FileCard({ file, token }: { file: PublicFile; token: string }) {
-  const [shareState, setShareState] = useState<'idle' | 'preparing' | 'ready' | 'error'>('idle')
-  const [downloadState, setDownloadState] = useState<'idle' | 'opening' | 'error'>('idle')
-  const prepared = useRef<File | null>(null)
-  const [shareable] = useState(() => canShareFiles() && file.tamanho <= SHARE_LIMIT_BYTES)
-  const video = isVideoType(file.tipo)
-
-  // O compartilhamento precisa acontecer logo depois do toque; por isso o arquivo é preparado antes.
-  async function prepare() {
-    setShareState('preparing')
-    try {
-      const response = await fetch(await fileUrl(token, file.id, 'assistir'))
-      if (!response.ok) throw new Error(String(response.status))
-      const blob = await response.blob()
-      const shared = new File([blob], file.nome, { type: file.tipo })
-      if (!navigator.canShare({ files: [shared] })) throw new Error('não compartilhável')
-      prepared.current = shared
-      setShareState('ready')
-    } catch {
-      setShareState('error')
-    }
-  }
-
-  async function share() {
-    if (!prepared.current) return
-    try {
-      await navigator.share({ files: [prepared.current] })
-    } catch {
-      // Cancelar a folha de compartilhamento também cai aqui; não é erro.
-    }
-  }
-
-  // A URL de download (original, com o nome do arquivo) só é gerada no clique.
-  async function download() {
-    setDownloadState('opening')
-    try {
-      window.location.assign(await fileUrl(token, file.id, 'baixar'))
-      setDownloadState('idle')
-    } catch {
-      setDownloadState('error')
-    }
-  }
-
-  return (
-    <li className="entrega-card">
-      {video ? (
-        <DeliveryVideo nome={file.nome} capa={file.capa} load={() => fileUrl(token, file.id, 'assistir')} />
-      ) : (
-        <img src={file.url} alt={file.nome} loading="lazy" decoding="async" />
-      )}
-      <div className="entrega-card__body">
-        <p className="entrega-card__name">{file.nome}</p>
-        <p className="portal-muted portal-small">{formatBytes(file.tamanho)}</p>
-        <div className="entrega-card__actions">
-          {shareable ? (
-            shareState === 'ready' ? (
-              <button className="portal-button" type="button" onClick={() => void share()}>
-                <ShareFat aria-hidden="true" /> Toque para salvar
-              </button>
-            ) : (
-              <button
-                className="portal-button"
-                type="button"
-                disabled={shareState === 'preparing'}
-                onClick={() => void prepare()}
-              >
-                <ShareFat aria-hidden="true" /> {shareState === 'preparing' ? 'Preparando…' : 'Salvar no celular'}
-              </button>
-            )
-          ) : null}
-          <button
-            className={`portal-button${shareable ? ' portal-button--ghost' : ''}`}
-            type="button"
-            disabled={downloadState === 'opening'}
-            onClick={() => void download()}
-          >
-            <DownloadSimple aria-hidden="true" />{' '}
-            {downloadState === 'opening' ? 'Abrindo…' : video ? 'Baixar original' : 'Baixar'}
-          </button>
-        </div>
-        {shareState === 'error' ? (
-          <p className="portal-error portal-small">Não deu para preparar. Use “Baixar original”.</p>
-        ) : null}
-        {downloadState === 'error' ? (
-          <p className="portal-error portal-small">Não deu para baixar agora. Tente de novo em instantes.</p>
-        ) : null}
-      </div>
-    </li>
   )
 }
