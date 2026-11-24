@@ -2,8 +2,8 @@
 
 export const DELIVERY_BUCKET = 'entregas'
 
-/** Mesmo valor do bucket. O limite global do Supabase pode ser menor. */
-export const MAX_FILE_BYTES = 5 * 1024 ** 3
+/** Limite de um envio único (PUT) no Cloudflare R2: 5 GiB menos 5 MiB. */
+export const MAX_FILE_BYTES = 5 * 1024 ** 3 - 5 * 1024 ** 2
 
 /** Dias depois do vencimento até a limpeza apagar os arquivos (tempo para a Ana prorrogar). */
 export const CLEANUP_GRACE_DAYS = 7

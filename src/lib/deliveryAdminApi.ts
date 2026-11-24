@@ -82,23 +82,19 @@ export function deleteDeliveryFile(session: Session, id: string, fileId: string)
   return estudioRequest<{ ok: true }>(`/api/portal/entregas/${id}/arquivos/${fileId}`, session, { method: 'DELETE' })
 }
 
-/** Sobe direto para o Storage pela URL assinada, com progresso (fetch não informa progresso de envio). */
+/** Sobe direto para o R2 pela URL assinada, com progresso (fetch não informa progresso de envio). */
 function putWithProgress(
   signedUrl: string,
   file: File,
-  tipo: string,
+  headers: Record<string, string>,
   onProgress: (fraction: number) => void,
   signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', signedUrl)
-    xhr.setRequestHeader('content-type', tipo)
-    // O path é único por envio e o arquivo nunca muda: pode ficar em cache por um ano.
-    xhr.setRequestHeader('cache-control', 'max-age=31536000')
-    xhr.setRequestHeader('x-upsert', 'false')
-    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
-    if (anonKey) xhr.setRequestHeader('apikey', anonKey)
+    // Os cabeçalhos entram na assinatura da URL: vão exatamente como a API devolveu.
+    for (const [name, value] of Object.entries(headers)) xhr.setRequestHeader(name, value)
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total)
@@ -108,12 +104,8 @@ function putWithProgress(
         resolve()
         return
       }
-      let message = ''
-      try {
-        message = (JSON.parse(xhr.responseText) as { message?: string; error?: string }).message ?? ''
-      } catch {
-        message = ''
-      }
+      // O R2 responde erro em XML (<Message>…</Message>).
+      const message = /<Message>([^<]*)<\/Message>/.exec(xhr.responseText)?.[1] ?? ''
       if (xhr.status === 413 || /maximum allowed size|too large/i.test(message)) {
         reject(new Error(`"${file.name}" passou do limite de tamanho do armazenamento.`))
       } else {
@@ -135,12 +127,12 @@ export async function uploadDeliveryFile(
   onProgress: (fraction: number) => void,
   signal?: AbortSignal,
 ): Promise<DeliveryFile> {
-  const start = await estudioRequest<{ path: string; signedUrl: string; tipo: string }>(
+  const start = await estudioRequest<{ path: string; signedUrl: string; tipo: string; headers?: Record<string, string> }>(
     `/api/portal/entregas/${id}/arquivos/envio`,
     session,
     { method: 'POST', body: JSON.stringify({ nome: file.name, tamanho: file.size }) },
   )
-  await putWithProgress(start.signedUrl, file, start.tipo, onProgress, signal)
+  await putWithProgress(start.signedUrl, file, start.headers ?? { 'content-type': start.tipo }, onProgress, signal)
   const done = await estudioRequest<{ arquivo: DeliveryFile }>(`/api/portal/entregas/${id}/arquivos`, session, {
     method: 'POST',
     body: JSON.stringify({ path: start.path, nome: file.name }),

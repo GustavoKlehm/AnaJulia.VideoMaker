@@ -461,8 +461,8 @@ O site agora tem **entregas**: a Ana sobe vídeos/fotos e o cliente recebe um li
 Se um dia o ExPx quiser criar entregas, as rotas aceitam o mesmo `EXPX_SYNC_TOKEN`. Resumo (detalhes em `AnaJulia.VideoMaker/docs/superpowers/specs/2026-11-19-entregas.md`):
 
 - `POST /api/portal/clientes/<slug>/entregas` com `{ "titulo": "...", "dataEvento": "AAAA-MM-DD", "expiraEm": "AAAA-MM-DD" }` → devolve `entrega.id` e `entrega.link`.
-- Para cada arquivo: `POST /api/portal/entregas/<id>/arquivos/envio` `{ nome, tamanho }` → `PUT` do arquivo na `signedUrl` com `content-type: tipo` → `POST /api/portal/entregas/<id>/arquivos` `{ path, nome }`.
+- Para cada arquivo: `POST /api/portal/entregas/<id>/arquivos/envio` `{ nome, tamanho }` → `PUT` do arquivo na `signedUrl` com **exatamente** os `headers` da resposta → `POST /api/portal/entregas/<id>/arquivos` `{ path, nome }`.
 - O link e a validade aparecem na resposta; o cliente precisa existir antes (mesmo `slug`).
-- No `PUT`, mande também `cache-control: max-age=31536000` (o arquivo nunca muda; economiza banda do Supabase).
+- Desde 2026-11-23 os arquivos vão para o Cloudflare R2 (até ~5 GB por arquivo). Os `headers` da resposta (`content-type` e `cache-control`) fazem parte da assinatura: sem eles o `PUT` é recusado.
 - Para a capa de um vídeo aparecer, suba junto uma foto com o mesmo nome + `-still` (ex.: `IMG_1234.MOV` e `IMG_1234-still.jpeg`).
 - Desde 2026-11-23, `GET /api/portal/entregas/<id>` **não traz mais** `url`/`download` dos vídeos (só `url` das fotos e `capa` dos vídeos). Para assistir ou baixar: `GET /api/portal/entregas/<id>/arquivos/<fileId>/url?modo=assistir|baixar` → `{ url, validaAte }`.

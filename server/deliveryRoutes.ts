@@ -3,7 +3,6 @@ import type { Request, Response, Router } from 'express'
 import express from 'express'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  DELIVERY_BUCKET,
   MAX_FILE_BYTES,
   cleanupCutoff,
   deliveryState,
@@ -19,6 +18,7 @@ import {
 import { readBearerToken } from './estudioUsers.js'
 import { matchesSyncToken } from './portalInput.js'
 import { authorize, fail, loadClient, portalUrl, type ClientRow } from './portalRoutes.js'
+import { SIGNED_URL_SECONDS, presignUpload, removeFiles, signGet, signGetMany, statUpload, type StorageKind } from './deliveryStorage.js'
 import { getSupabase } from './supabase.js'
 
 type DeliveryRow = {
@@ -43,6 +43,7 @@ type FileRow = {
   tipo: string
   tamanho: number
   created_at: string
+  storage: StorageKind
 }
 
 type ClientBrief = Pick<ClientRow, 'slug' | 'nome' | 'cor_principal' | 'cor_secundaria' | 'ativo'>
@@ -51,16 +52,11 @@ type DeliveryWithClient = DeliveryRow & { cliente: ClientBrief | null }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const CLIENT_BRIEF = 'cliente:portal_clients(slug, nome, cor_principal, cor_secundaria, ativo)'
-/** Validade das URLs assinadas de visualização/download. */
-const SIGNED_URL_SECONDS = 6 * 60 * 60
 
 function newToken(): string {
   return randomBytes(18).toString('base64url')
 }
 
-function bucket(db: SupabaseClient) {
-  return db.storage.from(DELIVERY_BUCKET)
-}
 
 function mapDelivery(req: Request, row: DeliveryWithClient | DeliveryRow, extra: { arquivos?: number } = {}) {
   const cliente = 'cliente' in row && row.cliente ? row.cliente : null
@@ -129,27 +125,17 @@ function signedUntil(): string {
  * Assina só as imagens (fotos e capas dos vídeos). Vídeo nunca vem assinado na lista: a URL dele é pedida
  * no clique (rota .../url), senão cada vídeo ganharia uma URL nova a cada busca e o navegador baixaria de novo.
  */
-async function signImages(db: SupabaseClient, files: FileRow[]) {
+async function signImages(files: FileRow[]) {
   const urls = new Map<string, string>()
-  const images = files.filter((f) => !isVideoType(f.tipo))
-  if (images.length === 0) return urls
-  const { data, error } = await bucket(db).createSignedUrls(
-    images.map((f) => f.path),
-    SIGNED_URL_SECONDS,
-  )
-  if (error) throw error
-  const byPath = new Map(images.map((f) => [f.path, f]))
-  for (const item of data ?? []) {
-    const file = item.path ? byPath.get(item.path) : undefined
-    if (file && item.signedUrl) urls.set(file.id, item.signedUrl)
-  }
+  const signed = await signGetMany(files.filter((f) => !isVideoType(f.tipo)))
+  for (const [file, url] of signed) urls.set(file.id, url)
   return urls
 }
 
 /** Lista para as telas: vídeos com a capa casada; no link do cliente (`forClient`) os stills casados somem da lista. */
-async function filesForView(db: SupabaseClient, files: FileRow[], forClient: boolean) {
+async function filesForView(files: FileRow[], forClient: boolean) {
   const urlsValidasAte = signedUntil()
-  const signed = await signImages(db, files)
+  const signed = await signImages(files)
   const stills = pairStills(files)
   const stillOf = new Map<string, string>()
   for (const [videoId, still] of stills) {
@@ -178,15 +164,10 @@ function parseUrlMode(raw: unknown): UrlMode | null {
 }
 
 /** Uma URL só, gerada no clique: para assistir, ou forçando o download com o nome original. */
-async function signOne(db: SupabaseClient, file: FileRow, mode: UrlMode) {
+async function signOne(file: FileRow, mode: UrlMode) {
   const validaAte = signedUntil()
-  const { data, error } = await bucket(db).createSignedUrl(
-    file.path,
-    SIGNED_URL_SECONDS,
-    mode === 'baixar' ? { download: file.nome } : undefined,
-  )
-  if (error) throw error
-  return { url: data.signedUrl, validaAte }
+  const url = await signGet(file, mode === 'baixar' ? file.nome : undefined)
+  return { url, validaAte }
 }
 
 async function loadFile(db: SupabaseClient, res: Response, deliveryId: string, rawFileId: unknown): Promise<FileRow | null> {
@@ -207,13 +188,6 @@ async function loadFile(db: SupabaseClient, res: Response, deliveryId: string, r
     return null
   }
   return data as FileRow
-}
-
-async function removeObjects(db: SupabaseClient, paths: string[]) {
-  for (let i = 0; i < paths.length; i += 100) {
-    const { error } = await bucket(db).remove(paths.slice(i, i + 100))
-    if (error) throw error
-  }
 }
 
 function deliveryCounts(rows: { delivery_id: string; tamanho: number }[]) {
@@ -315,7 +289,7 @@ async function getDelivery(req: Request, res: Response) {
     const delivery = await loadDelivery(db, res, req.params.id)
     if (!delivery) return
     const files = await listFiles(db, delivery.id)
-    const { arquivos, urlsValidasAte } = await filesForView(db, files, false)
+    const { arquivos, urlsValidasAte } = await filesForView(files, false)
     res.json({ entrega: mapDelivery(req, delivery, { arquivos: files.length }), arquivos, urlsValidasAte })
   } catch (cause) {
     fail(res, cause, 'Não deu para abrir a entrega.')
@@ -337,7 +311,7 @@ async function getFileUrl(req: Request, res: Response) {
     const file = await loadFile(db, res, delivery.id, req.params.fileId)
     if (!file) return
     res.set('Cache-Control', 'no-store')
-    res.json(await signOne(db, file, mode))
+    res.json(await signOne(file, mode))
   } catch (cause) {
     fail(res, cause, 'Não deu para abrir o arquivo.')
   }
@@ -400,7 +374,7 @@ async function deleteDelivery(req: Request, res: Response) {
     const delivery = await loadDelivery(db, res, req.params.id)
     if (!delivery) return
     const files = await listFiles(db, delivery.id)
-    await removeObjects(db, files.map((f) => f.path))
+    await removeFiles(files)
     const { error } = await db.from('portal_deliveries').delete().eq('id', delivery.id)
     if (error) throw error
     res.json({ ok: true, arquivosApagados: files.length })
@@ -433,9 +407,9 @@ async function startUpload(req: Request, res: Response) {
     const delivery = await loadDelivery(db, res, req.params.id)
     if (!delivery) return
     const path = `${delivery.client_id}/${delivery.id}/${randomUUID().slice(0, 8)}-${safeFileName(nome)}`
-    const { data, error } = await bucket(db).createSignedUploadUrl(path)
-    if (error) throw error
-    res.json({ path, token: data.token, signedUrl: data.signedUrl, tipo })
+    // Envio novo vai sempre para o R2. O PUT precisa mandar exatamente os `headers` devolvidos.
+    const { signedUrl, headers } = await presignUpload(path, tipo)
+    res.json({ path, signedUrl, tipo, headers })
   } catch (cause) {
     fail(res, cause, 'Não deu para preparar o envio.')
   }
@@ -455,18 +429,17 @@ async function finishUpload(req: Request, res: Response) {
       res.status(400).json({ error: 'Arquivo inválido para esta entrega.' })
       return
     }
-    const { data: info, error: infoError } = await bucket(db).info(path)
-    if (infoError || !info) {
+    const info = await statUpload(path)
+    if (!info) {
       res.status(409).json({ error: `"${nome}" não chegou ao armazenamento. Tente enviar de novo.` })
       return
     }
-    const meta = info as { size?: number; contentType?: string; metadata?: { size?: number; mimetype?: string } }
-    const tamanho = Number(meta.size ?? meta.metadata?.size ?? 0)
-    const tipo = fileTypeFor(path) ?? meta.contentType ?? meta.metadata?.mimetype ?? 'video/mp4'
+    const tamanho = info.size
+    const tipo = fileTypeFor(path) ?? info.contentType ?? 'video/mp4'
 
     const { data, error } = await db
       .from('portal_delivery_files')
-      .upsert({ delivery_id: delivery.id, path, nome, tipo, tamanho }, { onConflict: 'path' })
+      .upsert({ delivery_id: delivery.id, path, nome, tipo, tamanho, storage: 'r2' }, { onConflict: 'path' })
       .select('*')
       .single()
     if (error) throw error
@@ -488,7 +461,7 @@ async function deleteFile(req: Request, res: Response) {
     if (!delivery) return
     const file = await loadFile(db, res, delivery.id, req.params.fileId)
     if (!file) return
-    await removeObjects(db, [file.path])
+    await removeFiles([file])
     const { error: deleteError } = await db.from('portal_delivery_files').delete().eq('id', file.id)
     if (deleteError) throw deleteError
     res.json({ ok: true })
@@ -573,7 +546,7 @@ async function publicView(req: Request, res: Response) {
     if (!open) return
     const { delivery, cliente } = open
     const files = await listFiles(db, delivery.id)
-    const { arquivos, urlsValidasAte } = await filesForView(db, files, true)
+    const { arquivos, urlsValidasAte } = await filesForView(files, true)
     res.json({
       entrega: {
         titulo: delivery.titulo,
@@ -606,7 +579,7 @@ async function publicFileUrl(req: Request, res: Response) {
     if (!open) return
     const file = await loadFile(db, res, open.delivery.id, req.params.fileId)
     if (!file) return
-    res.json(await signOne(db, file, mode))
+    res.json(await signOne(file, mode))
   } catch (cause) {
     fail(res, cause, 'Não deu para abrir o arquivo agora. Tente de novo em instantes.')
   }
@@ -631,7 +604,7 @@ async function cleanup(req: Request, res: Response) {
     let arquivos = 0
     for (const { id } of (data ?? []) as { id: string }[]) {
       const files = await listFiles(db, id)
-      await removeObjects(db, files.map((f) => f.path))
+      await removeFiles(files)
       const { error: delError } = await db.from('portal_delivery_files').delete().eq('delivery_id', id)
       if (delError) throw delError
       const { error: updError } = await db
