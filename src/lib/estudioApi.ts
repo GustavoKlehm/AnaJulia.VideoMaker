@@ -1,4 +1,18 @@
 import type { Session } from '@supabase/supabase-js'
+import { getSupabase } from './supabase'
+
+/**
+ * A sessão guardada nas telas só muda quando troca o usuário (useAuth), então o token dela pode estar velho.
+ * getSession() lê do armazenamento local (sem ida à rede) e já vem com o token renovado.
+ */
+async function currentAccessToken(fallback: Session): Promise<string> {
+  try {
+    const { data } = await getSupabase().auth.getSession()
+    return data.session?.access_token ?? fallback.access_token
+  } catch {
+    return fallback.access_token
+  }
+}
 
 export type StudioMember = {
   id: string
@@ -21,7 +35,7 @@ export async function estudioRequest<T>(
   const response = await fetch(path, {
     ...init,
     headers: {
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${await currentAccessToken(session)}`,
       'Content-Type': 'application/json',
       ...(init?.headers ?? {}),
     },

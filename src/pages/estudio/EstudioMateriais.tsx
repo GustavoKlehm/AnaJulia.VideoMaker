@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { DeliveryVideo } from '../../components/DeliveryVideo'
 import { useCms } from '../../content/cmsContext'
 import {
   getHeroMediaId,
@@ -112,9 +113,14 @@ export function EstudioMateriais() {
           {assets.map((asset) => (
             <article className="estudio-media" key={asset.id}>
               {asset.kind === 'video' ? (
-                <video src={asset.public_url} muted playsInline controls preload="metadata" />
+                // Só carrega o vídeo no clique: abrir a biblioteca não baixa nada.
+                <DeliveryVideo
+                  nome={asset.title || asset.path || 'vídeo'}
+                  muted
+                  load={() => Promise.resolve(asset.public_url)}
+                />
               ) : (
-                <img src={asset.public_url} alt={asset.alt || asset.title || ''} />
+                <img src={asset.public_url} alt={asset.alt || asset.title || ''} loading="lazy" decoding="async" />
               )}
               <p>{asset.title || asset.path}</p>
               {heroId === asset.id ? (

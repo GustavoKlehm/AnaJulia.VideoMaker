@@ -27,6 +27,8 @@ export async function uploadMedia(
 
   const { error: uploadError } = await client.storage.from('media').upload(path, file, {
     upsert: false,
+    // O path é único (uuid) e o arquivo nunca muda: cache de um ano.
+    cacheControl: '31536000',
   })
   throwIfError(uploadError, 'storage.upload')
 

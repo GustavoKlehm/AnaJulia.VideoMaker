@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { DeliveryVideo } from '../../components/DeliveryVideo'
 import { RouteLink } from '../../components/RouteLink'
 import { useAuth } from '../../hooks/useAuth'
 import {
   deleteDelivery,
   deleteDeliveryFile,
   getDelivery,
+  getDeliveryFileUrl,
   renewDeliveryLink,
   updateDelivery,
   uploadDeliveryFile,
@@ -12,6 +14,7 @@ import {
   type DeliveryFile,
 } from '../../lib/deliveryAdminApi'
 import { navigate } from '../../lib/router'
+import { signedUrl, stableUrl } from '../../lib/signedUrlCache'
 import { getSupabase } from '../../lib/supabase'
 import {
   ACCEPTED_EXTENSIONS,
@@ -39,10 +42,29 @@ export function EstudioEntrega({ id }: { id: string }) {
   const uploading = queue.some((q) => q.status === 'fila' || q.status === 'enviando')
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // `session` só muda quando troca o usuário (useAuth), então isto não roda de novo ao trocar de aba.
   const load = useCallback(async () => {
     if (!session) return
-    setDetail(await getDelivery(session, id))
+    const next = await getDelivery(session, id)
+    // Fotos e capas mantêm a URL que já estava valendo: recarregar a lista não baixa as imagens de novo.
+    setDetail({
+      entrega: next.entrega,
+      arquivos: next.arquivos.map((f) => ({
+        ...f,
+        url: f.url ? stableUrl(`${f.id}:imagem`, f.url, next.urlsValidasAte) : undefined,
+        capa: f.capa ? stableUrl(`${f.id}:capa`, f.capa, next.urlsValidasAte) : undefined,
+      })),
+    })
   }, [session, id])
+
+  /** URL gerada só no clique (assistir/baixar) e guardada enquanto vale. */
+  const fileUrl = useCallback(
+    (fileId: string, modo: 'assistir' | 'baixar') => {
+      if (!session) return Promise.reject(new Error('Sua sessão caiu. Entre de novo no estúdio.'))
+      return signedUrl(`${fileId}:${modo}`, () => getDeliveryFileUrl(session, id, fileId, modo))
+    },
+    [session, id],
+  )
 
   useEffect(() => {
     load().catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Não deu para abrir a entrega.'))
@@ -178,23 +200,31 @@ export function EstudioEntrega({ id }: { id: string }) {
         <ul className="estudio-delivery-files">
           {arquivos.map((f) => (
             <li key={f.id} className="estudio-delivery-file">
-              {f.url ? (
-                isVideoType(f.tipo) ? (
-                  <video src={f.url} controls muted playsInline preload="metadata" />
-                ) : (
-                  <img src={f.url} alt="" loading="lazy" />
-                )
+              {isVideoType(f.tipo) ? (
+                <DeliveryVideo nome={f.nome} capa={f.capa} muted load={() => fileUrl(f.id, 'assistir')} />
+              ) : f.url ? (
+                <img src={f.url} alt="" loading="lazy" decoding="async" />
               ) : (
                 <div className="estudio-delivery-file__empty" />
               )}
               <p className="estudio-client-row__name">{f.nome}</p>
-              <p className="estudio-help">{formatBytes(f.tamanho)}</p>
+              <p className="estudio-help">
+                {formatBytes(f.tamanho)}
+                {f.capaDe ? ` · capa de ${f.capaDe} (o cliente não vê como foto)` : ''}
+              </p>
               <div className="estudio-actions">
-                {f.download ? (
-                  <a className="estudio-button-ghost" href={f.download}>
-                    Baixar
-                  </a>
-                ) : null}
+                <button
+                  className="estudio-button-ghost"
+                  type="button"
+                  onClick={() => {
+                    setError('')
+                    fileUrl(f.id, 'baixar')
+                      .then((url) => window.location.assign(url))
+                      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Não deu para baixar.'))
+                  }}
+                >
+                  Baixar
+                </button>
                 <button
                   className="estudio-button-ghost"
                   type="button"

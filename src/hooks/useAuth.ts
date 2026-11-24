@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
-import { isAdminFromUser, needsStudioClaim } from '../lib/authRole'
+import { isAdminFromUser, needsStudioClaim, sameAuthIdentity } from '../lib/authRole'
 import { getSupabase } from '../lib/supabase'
 
 async function claimStudioIfNeeded(): Promise<boolean> {
@@ -35,8 +35,10 @@ export function useAuth() {
       setLoading(false)
     })
 
+    // Só troca a sessão quando muda o usuário (ou o papel). As APIs pegam o token atual na hora (estudioRequest),
+    // então não precisa re-renderizar a cada TOKEN_REFRESHED nem a cada vez que a aba volta a ficar visível.
     const { data } = client.auth.onAuthStateChange((_event, next) => {
-      setSession(next)
+      setSession((current) => (sameAuthIdentity(current?.user, next?.user) ? current : next))
     })
 
     return () => data.subscription.unsubscribe()

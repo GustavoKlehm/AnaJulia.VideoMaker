@@ -25,8 +25,12 @@ export type DeliveryFile = {
   tipo: string
   tamanho: number
   criadoEm: string
+  /** Só nas fotos. A URL dos vídeos é pedida no clique (getDeliveryFileUrl). */
   url?: string
-  download?: string
+  /** Vídeo: URL do "-still" casado com ele. */
+  capa?: string
+  /** Foto "-still": nome do vídeo de que ela é capa. */
+  capaDe?: string
 }
 
 export function listDeliveries(session: Session) {
@@ -45,7 +49,18 @@ export function createDelivery(session: Session, slug: string, input: DeliveryIn
 }
 
 export function getDelivery(session: Session, id: string) {
-  return estudioRequest<{ entrega: AdminDelivery; arquivos: DeliveryFile[] }>(`/api/portal/entregas/${id}`, session)
+  return estudioRequest<{ entrega: AdminDelivery; arquivos: DeliveryFile[]; urlsValidasAte: string }>(
+    `/api/portal/entregas/${id}`,
+    session,
+  )
+}
+
+/** URL de um arquivo para assistir ou baixar (o original, com o nome do arquivo), gerada só quando pedida. */
+export function getDeliveryFileUrl(session: Session, id: string, fileId: string, modo: 'assistir' | 'baixar') {
+  return estudioRequest<{ url: string; validaAte: string }>(
+    `/api/portal/entregas/${id}/arquivos/${fileId}/url?modo=${modo}`,
+    session,
+  )
 }
 
 export function updateDelivery(session: Session, id: string, input: DeliveryInput) {
@@ -79,7 +94,8 @@ function putWithProgress(
     const xhr = new XMLHttpRequest()
     xhr.open('PUT', signedUrl)
     xhr.setRequestHeader('content-type', tipo)
-    xhr.setRequestHeader('cache-control', 'max-age=3600')
+    // O path é único por envio e o arquivo nunca muda: pode ficar em cache por um ano.
+    xhr.setRequestHeader('cache-control', 'max-age=31536000')
     xhr.setRequestHeader('x-upsert', 'false')
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
     if (anonKey) xhr.setRequestHeader('apikey', anonKey)

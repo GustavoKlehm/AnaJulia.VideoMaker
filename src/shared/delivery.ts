@@ -188,3 +188,53 @@ export function deliveryMessage(input: { titulo: string; link: string; expiraEm:
     .filter(Boolean)
     .join('\n')
 }
+
+// ---------------------------------------------------------------------------
+// Capas dos vídeos e atualização automática
+// ---------------------------------------------------------------------------
+
+const STILL_SUFFIX = /[-_ ]still$/i
+
+/** "IMG_1234.MOV" → "img_1234" (nome original, sem extensão, minúsculo). */
+function baseOf(nome: string): string {
+  const trimmed = nome.trim()
+  const dot = trimmed.lastIndexOf('.')
+  return (dot > 0 ? trimmed.slice(0, dot) : trimmed).toLowerCase()
+}
+
+/**
+ * Casa cada vídeo com a foto "-still" de mesmo nome ("IMG_1234.MOV" + "IMG_1234-still.jpeg"), que vira a capa.
+ * Devolve vídeo → still. O casamento é pelo nome original, porque no Storage cada arquivo ganha um prefixo.
+ */
+export function pairStills<T extends { id: string; nome: string; tipo: string }>(files: T[]): Map<string, T> {
+  const stills = new Map<string, T>()
+  for (const f of files) {
+    if (isVideoType(f.tipo) || !f.tipo.startsWith('image/')) continue
+    const base = baseOf(f.nome)
+    if (STILL_SUFFIX.test(base)) stills.set(base.replace(STILL_SUFFIX, ''), f)
+  }
+  const pairs = new Map<string, T>()
+  if (stills.size === 0) return pairs
+  for (const f of files) {
+    if (!isVideoType(f.tipo)) continue
+    const still = stills.get(baseOf(f.nome))
+    if (still) pairs.set(f.id, still)
+  }
+  return pairs
+}
+
+/** Horas depois de criada em que a página do cliente ainda confere arquivos novos sozinha. */
+const LIVE_WINDOW_MS = 24 * 60 * 60 * 1000
+
+/**
+ * A página do cliente só se atualiza sozinha enquanto a Ana pode estar subindo stories: no dia do evento
+ * ou nas primeiras 24 h da entrega. Fora disso, só com o botão "Atualizar".
+ */
+export function isDeliveryLive(
+  d: { dataEvento: string | null; criadaEm: string },
+  now: Date = new Date(),
+): boolean {
+  if (d.dataEvento && d.dataEvento === todayInBrazil(now)) return true
+  const created = Date.parse(d.criadaEm)
+  return Number.isFinite(created) && now.getTime() - created < LIVE_WINDOW_MS
+}

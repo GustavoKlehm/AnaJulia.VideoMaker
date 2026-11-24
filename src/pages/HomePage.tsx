@@ -18,6 +18,67 @@ function Lines({ text }: { text: string }) {
   ))
 }
 
+/**
+ * Vídeo de fundo das Histórias: continua tocando sozinho, mas só começa a baixar quando está chegando
+ * perto da tela (antes, todos baixavam ao abrir a home) e pausa quando sai dela.
+ * Depois de carregado o `src` fica fixo, então voltar ao capítulo usa o cache do navegador.
+ */
+function StoryVideo({ src, reduced }: { src: string; reduced: boolean }) {
+  const ref = useRef<HTMLVideoElement | null>(null)
+  const [near, setNear] = useState(false)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node) {
+      return
+    }
+    // Começa a carregar meia tela antes de aparecer, para já estar tocando quando chegar.
+    const nearObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setNear(true)
+          nearObserver.disconnect()
+        }
+      },
+      { rootMargin: '50% 0px' },
+    )
+    const visibleObserver = new IntersectionObserver(([entry]) => setVisible(Boolean(entry?.isIntersecting)), {
+      threshold: 0.15,
+    })
+    nearObserver.observe(node)
+    visibleObserver.observe(node)
+    return () => {
+      nearObserver.disconnect()
+      visibleObserver.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    const video = ref.current
+    if (!video || !near) {
+      return
+    }
+    if (visible && !reduced) {
+      void video.play().catch(() => undefined)
+    } else {
+      video.pause()
+    }
+  }, [near, visible, reduced])
+
+  return (
+    <video
+      ref={ref}
+      className="chapter__media"
+      src={near ? src : undefined}
+      muted
+      loop
+      playsInline
+      preload={reduced ? 'metadata' : 'auto'}
+    />
+  )
+}
+
 export function HomePage() {
   const { site } = useCms()
   const reduced = usePrefersReducedMotion()
@@ -187,14 +248,7 @@ export function HomePage() {
               >
                 {story.media ? (
                   /\.(mov|mp4|webm)(\?|$)/i.test(story.media) ? (
-                    <video
-                      className="chapter__media"
-                      src={story.media}
-                      muted
-                      loop
-                      playsInline
-                      autoPlay={!reduced}
-                    />
+                    <StoryVideo src={story.media} reduced={reduced} />
                   ) : (
                     <img className="chapter__media" src={story.media} alt="" />
                   )
